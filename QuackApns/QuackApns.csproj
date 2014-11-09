@@ -58,7 +58,7 @@
     <Compile Include="ApnsNotification.cs" />
     <Compile Include="ApnsPayload.cs" />
     <Compile Include="ApnsPushClient.cs" />
-    <Compile Include="ApnsReader.cs" />
+    <Compile Include="ApnsNotificationReader.cs" />
     <Compile Include="ApnsResponseWriter.cs" />
     <Compile Include="ApnsStreamExtensions.cs" />
     <Compile Include="ApnsNotificationWriter.cs" />

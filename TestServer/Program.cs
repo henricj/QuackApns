@@ -34,7 +34,7 @@ namespace TestServer
 
         static async Task RunAsync(string hostname, int port, CancellationToken cancellationToken)
         {
-            var pushServer = new NetServer(ct => Task.FromResult<INetConnectionHandler>(new ApnsReader()));
+            var pushServer = new NetServer(ct => Task.FromResult<INetConnectionHandler>(new ApnsNotificationReader()));
 
             var feedbackServer = new NetServer(ct => Task.FromResult<INetConnectionHandler>(new NetConnectionHandler()));
 

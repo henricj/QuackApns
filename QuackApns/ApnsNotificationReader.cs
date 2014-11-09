@@ -25,10 +25,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using QuackApns.Network;
 using QuackApns.Parser;
+using QuackApns.Utility;
 
 namespace QuackApns
 {
-    public class ApnsReader : INetConnectionHandler
+    public class ApnsNotificationReader : INetConnectionHandler
     {
         // https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/Chapters/CommunicatingWIthAPS.html
 
@@ -36,8 +37,8 @@ namespace QuackApns
 
         readonly ApnsNotification _notification = new ApnsNotification();
         readonly IParser[] _parsers = { new Type0Parser(), new Type1Parser(), new Type2Parser() };
-        IParser _parser;
         long _messageCount;
+        IParser _parser;
 
         #region INetConnectionHandler Members
 
@@ -128,6 +129,11 @@ namespace QuackApns
 
                 return length;
             }
+        }
+
+        public Task CloseAsync(CancellationToken cancellationToken)
+        {
+            return TplHelpers.CompletedTask;
         }
 
         #endregion

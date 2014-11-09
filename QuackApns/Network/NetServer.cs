@@ -262,7 +262,16 @@ namespace QuackApns.Network
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Reader cancel close failed: " + ex.Message);
+                Debug.WriteLine("Reader close failed: " + ex.Message);
+            }
+
+            try
+            {
+                await connectionHandler.CloseAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Connection handler close failed: " + ex.Message);
             }
 
             var totalMb = total * (1.0 / (1024.0 * 1024.0));

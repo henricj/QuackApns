@@ -84,6 +84,18 @@ namespace TestClient
 
             var writerTask = tcpConnection.RunAsync(host, port, true, cancellationToken);
 
+            var cleanupTask = writerTask.ContinueWith(async t =>
+            {
+                try
+                {
+                    await pushClient.CloseAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("PushCLient close failed: " + ex.Message);
+                }
+            }, TaskContinuationOptions.ExecuteSynchronously);
+
             var genTask = Task.Run(() =>
             {
                 for (var j = 0; j < 10; ++j)

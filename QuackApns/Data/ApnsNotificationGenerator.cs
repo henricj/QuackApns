@@ -54,7 +54,7 @@ namespace QuackApns.Data
             {
                 var apnsNotification = new ApnsNotification
                 {
-                    Device = new byte[32],
+                    Device = new byte[ApnsConstants.DeviceTokenLength],
                     ExpirationEpoch = expirationEpoch,
                     Payload = new ArraySegment<byte>(binaryMessage),
                     Priority = priority
@@ -85,7 +85,7 @@ namespace QuackApns.Data
 
                 var apnsNotification = new ApnsNotification
                 {
-                    Device = new byte[32],
+                    Device = new byte[ApnsConstants.DeviceTokenLength],
                     ExpirationEpoch = expirationEpoch,
                     Payload = new ArraySegment<byte>(binaryMessage),
                     Priority = priority

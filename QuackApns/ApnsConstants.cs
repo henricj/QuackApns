@@ -18,31 +18,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System.Collections.Generic;
-using QuackApns.Random;
-
-namespace QuackApns.Data
+namespace QuackApns
 {
-    public class DeviceRepository
+    public static class ApnsConstants
     {
-        public ICollection<Device> Devices { get; private set; }
-
-        public void Load(int key, int count)
-        {
-            var rng = new XorShift1024Star(key);
-
-            var devices = new Device[count];
-
-            for (var i = 0; i < count; ++i)
-            {
-                var device = new Device { Token = new byte[ApnsConstants.DeviceTokenLength] };
-
-                rng.GetBytes(device.Token);
-
-                devices[i] = device;
-            }
-
-            Devices = devices;
-        }
+        public const int DeviceTokenLength = 32;
     }
 }

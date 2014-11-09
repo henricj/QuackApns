@@ -50,6 +50,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ApnsConstants.cs" />
     <Compile Include="ApnsErrorCode.cs" />
     <Compile Include="ApnsItemId.cs" />
     <Compile Include="ApnsJsonWriter.cs" />

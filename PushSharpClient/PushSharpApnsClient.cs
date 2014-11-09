@@ -27,6 +27,7 @@ using System.Threading.Tasks;
 using PushSharp;
 using PushSharp.Apple;
 using PushSharp.Core;
+using QuackApns;
 using QuackApns.Certificates;
 using QuackApns.Random;
 using QuackApns.Utility;
@@ -94,7 +95,7 @@ namespace PushSharpClient
         {
             var deviceTokenConverter = new DeviceTokenConverter();
 
-            var deviceToken = new byte[32];
+            var deviceToken = new byte[ApnsConstants.DeviceTokenLength];
 
             var rng = new XorShift1024Star();
 

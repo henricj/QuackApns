@@ -52,10 +52,10 @@ namespace QuackApns.Utility
         {
             if (null == token)
                 throw new ArgumentNullException("token");
-            if (token.Length != 32)
-                throw new ArgumentException("token", "tokens must be 32 bytes" + token.Length);
+            if (token.Length != ApnsConstants.DeviceTokenLength)
+                throw new ArgumentException("token", "tokens must be " + ApnsConstants.DeviceTokenLength + " bytes" + token.Length);
 
-            for (var i = 0; i < 32; ++i)
+            for (var i = 0; i < ApnsConstants.DeviceTokenLength; ++i)
             {
                 var b = token[i];
 
@@ -74,17 +74,17 @@ namespace QuackApns.Utility
                 throw new ArgumentNullException("buffer");
             if (offset < 0 || offset >= buffer.Length)
                 throw new ArgumentOutOfRangeException("offset", offset, "outside the buffer");
-            if (32 != count)
-                throw new ArgumentOutOfRangeException("count", count, "tokens are 32 bytes");
+            if (ApnsConstants.DeviceTokenLength != count)
+                throw new ArgumentOutOfRangeException("count", count, "tokens are  " + ApnsConstants.DeviceTokenLength + "  bytes");
             if (offset + count > buffer.Length)
                 throw new ArgumentOutOfRangeException("count", count, "outside the buffer");
 
             token = token.Trim();
 
             if (64 != token.Length)
-                throw new ArgumentException("tokens must be 32 bytes (64 chars): " + token.Length, "token");
+                throw new ArgumentException("tokens must be " + ApnsConstants.DeviceTokenLength + " bytes ( " + 2 * ApnsConstants.DeviceTokenLength + "  chars): " + token.Length, "token");
 
-            for (var i = 0; i < 32; ++i)
+            for (var i = 0; i < ApnsConstants.DeviceTokenLength; ++i)
             {
                 var hi = token[2 * i];
                 var lo = token[2 * i + 1];
@@ -103,7 +103,7 @@ namespace QuackApns.Utility
 
         public static byte[] StringToToken(this DeviceTokenConverter deviceTokenConverter, string token)
         {
-            var buffer = new byte[32];
+            var buffer = new byte[ApnsConstants.DeviceTokenLength];
 
             deviceTokenConverter.StringToToken(token, buffer);
 

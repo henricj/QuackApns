@@ -21,6 +21,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using QuackApns.Network;
@@ -82,6 +83,13 @@ namespace QuackApns
                         Parse(parseBuffer, 0, length);
                 }
             }
+            catch (IOException ex)
+            {
+                var socketException = ex.InnerException as SocketException;
+
+                if (null == socketException || SocketError.ConnectionReset != socketException.SocketErrorCode)
+                    Debug.WriteLine("Read failed: " + ex.Message);
+            }
             catch (Exception ex)
             {
                 Debug.WriteLine("Read failed: " + ex.Message);
@@ -109,12 +117,7 @@ namespace QuackApns
             }
 
             if (null == response)
-            {
-                if (cancellationToken.IsCancellationRequested && stream.CanWrite)
-                    response = new ApnsResponse { ErrorCode = ApnsErrorCode.Shutdown };
-                else
-                    return 0;
-            }
+                return 0;
 
             using (var ms = new MemoryStream())
             {
@@ -124,7 +127,21 @@ namespace QuackApns
 
                 var length = (int)ms.Length;
 
-                await stream.WriteAsync(ms.GetBuffer(), 0, length, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await stream.WriteAsync(ms.GetBuffer(), 0, length, cancellationToken).ConfigureAwait(false);
+                }
+                catch (IOException ex)
+                {
+                    var socketException = ex.InnerException as SocketException;
+
+                    if (null == socketException || SocketError.ConnectionReset != socketException.SocketErrorCode)
+                        Debug.WriteLine("Write failed: " + ex.Message);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("Write failed: " + ex.Message);
+                }
 
                 return length;
             }
@@ -132,7 +149,7 @@ namespace QuackApns
 
         public Task CloseAsync(CancellationToken cancellationToken)
         {
-            Debug.WriteLine("ApnsNotificationReader {0:N} kMsg {1:F2}MB", _messageCount / 1000, _readBytes * (1.0 / (1024 * 1024)));
+            Debug.WriteLine("ApnsNotificationReader {0:N3} kMsg {1:F2}MB", _messageCount / 1000.0, _readBytes * (1.0 / (1024 * 1024)));
 
             return TplHelpers.CompletedTask;
         }

@@ -90,6 +90,7 @@
     <Compile Include="Utility\ConsoleCancel.cs" />
     <Compile Include="Utility\DeviceTokenConverter.cs" />
     <Compile Include="Utility\RingBufferReadStream.cs" />
+    <Compile Include="Utility\TplHelpers.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

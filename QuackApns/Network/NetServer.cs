@@ -296,7 +296,8 @@ namespace QuackApns.Network
             {
                 try
                 {
-                    socket.Shutdown(SocketShutdown.Receive);
+                    if (socket.Connected)
+                        socket.Shutdown(SocketShutdown.Receive);
                 }
                 catch (Exception)
                 {
@@ -319,7 +320,8 @@ namespace QuackApns.Network
             {
                 try
                 {
-                    socket.Shutdown(SocketShutdown.Send);
+                    if (socket.Connected)
+                        socket.Shutdown(SocketShutdown.Send);
                 }
                 catch (Exception)
                 {

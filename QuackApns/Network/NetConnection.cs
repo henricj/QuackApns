@@ -54,17 +54,18 @@ namespace QuackApns.Network
 
                 using (cancellationToken.Register(o =>
                 {
-                    var client = (TcpClient)o;
+                    var socket = (Socket)o;
 
                     try
                     {
-                        client.Client.Shutdown(SocketShutdown.Both);
+                        if (socket.Connected)
+                            socket.Shutdown(SocketShutdown.Both);
                     }
                     catch (Exception ex)
                     {
                         Debug.WriteLine("TcpClient close on cancel failed: " + ex.Message);
                     }
-                }, tcpClient, false))
+                }, tcpClient.Client, false))
                 {
                     await tcpClient.ConnectAsync(host, port).ConfigureAwait(false);
 
@@ -116,7 +117,8 @@ namespace QuackApns.Network
             {
                 try
                 {
-                    socket.Shutdown(SocketShutdown.Receive);
+                    if (socket.Connected)
+                        socket.Shutdown(SocketShutdown.Receive);
                 }
                 catch (Exception)
                 {
@@ -139,7 +141,8 @@ namespace QuackApns.Network
             {
                 try
                 {
-                    socket.Shutdown(SocketShutdown.Send);
+                    if (socket.Connected)
+                        socket.Shutdown(SocketShutdown.Send);
                 }
                 catch (Exception)
                 {

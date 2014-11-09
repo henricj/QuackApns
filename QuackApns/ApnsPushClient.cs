@@ -27,6 +27,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using QuackApns.Network;
+using QuackApns.Utility;
 
 namespace QuackApns
 {
@@ -88,6 +89,11 @@ namespace QuackApns
                 await _writeTask.ConfigureAwait(false);
 
             return _writeTotal;
+        }
+
+        public Task CloseAsync(CancellationToken cancellationToken)
+        {
+            return TplHelpers.CompletedTask;
         }
 
         #endregion

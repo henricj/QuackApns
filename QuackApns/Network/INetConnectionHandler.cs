@@ -29,5 +29,6 @@ namespace QuackApns.Network
         Task<long> ReadAsync(Stream stream, CancellationToken cancellationToken);
         Task<long> WriteAsync(Stream stream, CancellationToken cancellationToken);
 
+        Task CloseAsync(CancellationToken cancellationToken);
     }
 }

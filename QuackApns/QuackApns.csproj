@@ -52,6 +52,7 @@
   <ItemGroup>
     <Compile Include="ApnsConstants.cs" />
     <Compile Include="ApnsErrorCode.cs" />
+    <Compile Include="ApnsResponse.cs" />
     <Compile Include="ApnsItemId.cs" />
     <Compile Include="ApnsJsonWriter.cs" />
     <Compile Include="ApnsNotification.cs" />

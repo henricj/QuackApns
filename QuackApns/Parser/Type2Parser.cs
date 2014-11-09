@@ -23,32 +23,22 @@ using System.IO;
 
 namespace QuackApns.Parser
 {
-    class Type2Parser : IParser
+    class Type2Parser : ParserBase
     {
-        bool _done;
         MemoryStream _frameBuffer;
         int _frameSize;
         int _index;
 
-        ApnsNotification _notification;
-
-        #region IParser Members
-
-        public bool IsDone
+        public override void Start(ApnsNotification notification, Action<ApnsResponse> reportError)
         {
-            get { return _done; }
-        }
+            base.Start(notification, reportError);
 
-        public void Start(ApnsNotification notification)
-        {
-            _notification = notification;
             _index = 0;
-            _done = false;
         }
 
-        public int Parse(byte[] buffer, int offset, int count)
+        public override int Parse(byte[] buffer, int offset, int count)
         {
-            if (_done)
+            if (IsDone)
                 return 0;
 
             var i = 0;
@@ -97,7 +87,7 @@ namespace QuackApns.Parser
                     {
                         ParseFrame();
 
-                        _done = true;
+                        IsDone = true;
 
                         break;
                     }
@@ -106,8 +96,6 @@ namespace QuackApns.Parser
 
             return i;
         }
-
-        #endregion
 
         void ParseFrame()
         { }

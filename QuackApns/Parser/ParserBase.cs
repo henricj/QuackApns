@@ -22,10 +22,30 @@ using System;
 
 namespace QuackApns.Parser
 {
-    interface IParser
+    abstract class ParserBase : IParser
     {
-        bool IsDone { get; }
-        void Start(ApnsNotification notification, Action<ApnsResponse> reportError);
-        int Parse(byte[] buffer, int offset, int count);
+        protected ApnsNotification Notification { get; private set; }
+
+        protected Action<ApnsResponse> ReportError { get; private set; }
+
+        #region IParser Members
+
+        public bool IsDone { get; protected set; }
+
+        public virtual void Start(ApnsNotification notification, Action<ApnsResponse> reportError)
+        {
+            if (null == notification)
+                throw new ArgumentNullException("notification");
+            if (null == reportError)
+                throw new ArgumentNullException("reportError");
+
+            Notification = notification;
+            ReportError = reportError;
+            IsDone = false;
+        }
+
+        public abstract int Parse(byte[] buffer, int offset, int count);
+
+        #endregion
     }
 }

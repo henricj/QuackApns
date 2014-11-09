@@ -32,11 +32,12 @@ namespace QuackApns
     {
         // https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/Chapters/CommunicatingWIthAPS.html
 
-        readonly TaskCompletionSource<object> _doneReading = new TaskCompletionSource<object>();
+        readonly TaskCompletionSource<ApnsResponse> _doneReading = new TaskCompletionSource<ApnsResponse>();
 
         readonly ApnsNotification _notification = new ApnsNotification();
-        readonly IParser[] _parsers = { new Type0Parse(), new Type1Parser(), new Type2Parser() };
+        readonly IParser[] _parsers = { new Type0Parser(), new Type1Parser(), new Type2Parser() };
         IParser _parser;
+        long _messageCount;
 
         #region INetConnectionHandler Members
 
@@ -95,6 +96,8 @@ namespace QuackApns
 
         public async Task<long> WriteAsync(Stream stream, CancellationToken cancellationToken)
         {
+            ApnsResponse response;
+
             using (cancellationToken.Register(obj =>
             {
                 var tcs = (TaskCompletionSource<object>)obj;
@@ -102,10 +105,29 @@ namespace QuackApns
                 tcs.TrySetCanceled();
             }, _doneReading))
             {
-                await _doneReading.Task.ConfigureAwait(false);
+                response = await _doneReading.Task.ConfigureAwait(false);
             }
 
-            return 0;
+            if (null == response)
+            {
+                if (cancellationToken.IsCancellationRequested && stream.CanWrite)
+                    response = new ApnsResponse { ErrorCode = ApnsErrorCode.Shutdown };
+                else
+                    return 0;
+            }
+
+            using (var ms = new MemoryStream())
+            {
+                var w = new ApnsResponseWriter();
+
+                w.Write(ms, response);
+
+                var length = (int)ms.Length;
+
+                await stream.WriteAsync(ms.GetBuffer(), 0, length, cancellationToken).ConfigureAwait(false);
+
+                return length;
+            }
         }
 
         #endregion
@@ -122,16 +144,15 @@ namespace QuackApns
 
                     if (type >= _parsers.Length)
                     {
-                        // TODO: Fail the stream...
+                        _doneReading.TrySetResult(new ApnsResponse { ErrorCode = ApnsErrorCode.ProcessingError });
                         return;
                     }
-
 
                     _parser = _parsers[type];
 
                     _notification.Type = type;
 
-                    _parser.Start(_notification);
+                    _parser.Start(_notification, response => _doneReading.TrySetResult(response));
 
                     if (i >= count)
                         return;
@@ -141,7 +162,10 @@ namespace QuackApns
 
                 if (_parser.IsDone)
                 {
+                    Interlocked.Increment(ref _messageCount);
+
                     // TODO: Do something with the _notification.
+
                     _parser = null;
                 }
             }

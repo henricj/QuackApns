@@ -22,33 +22,24 @@ using System;
 
 namespace QuackApns.Parser
 {
-    class Type1Parser : IParser
+    class Type1Parser : ParserBase
     {
-        bool _done;
         uint _expiration;
         uint _identifier;
         int _index;
-        ApnsNotification _notification;
         ushort _payloadLength;
         ushort _tokenLength;
 
-        #region IParser Members
-
-        public bool IsDone
+        public override void Start(ApnsNotification notification, Action<ApnsResponse> reportError)
         {
-            get { return _done; }
-        }
+            base.Start(notification, reportError);
 
-        public void Start(ApnsNotification notification)
-        {
-            _notification = notification;
             _index = 0;
-            _done = false;
         }
 
-        public int Parse(byte[] buffer, int offset, int count)
+        public override int Parse(byte[] buffer, int offset, int count)
         {
-            if (_done)
+            if (IsDone)
                 return 0;
 
             var i = 0;
@@ -85,8 +76,11 @@ namespace QuackApns.Parser
                     ++i;
                     ++_index;
 
-                    if (null == _notification.Device || _tokenLength != _notification.Device.Length)
-                        _notification.Device = new byte[_tokenLength];
+                    if (_tokenLength != ApnsConstants.DeviceTokenLength)
+                        ReportError(new ApnsResponse { ErrorCode = ApnsErrorCode.InvalidTokenSize, Identifier = _identifier});
+
+                    if (null == Notification.Device || _tokenLength != Notification.Device.Length)
+                        Notification.Device = new byte[_tokenLength];
                 }
                 else if (_index < 8 + 2 + _tokenLength)
                 {
@@ -97,9 +91,9 @@ namespace QuackApns.Parser
                     var copy = Math.Min(remaining, count - i);
 
                     if (copy > 1)
-                        Array.Copy(buffer, offset + i, _notification.Device, deviceIndex, copy);
+                        Array.Copy(buffer, offset + i, Notification.Device, deviceIndex, copy);
                     else
-                        _notification.Device[deviceIndex] = buffer[offset + i];
+                        Notification.Device[deviceIndex] = buffer[offset + i];
 
                     _index += copy;
                     i += copy;
@@ -115,8 +109,8 @@ namespace QuackApns.Parser
                 {
                     _payloadLength |= buffer[offset + i];
 
-                    if (null == _notification.Payload.Array || _payloadLength != _notification.Payload.Count)
-                        _notification.Payload = new ArraySegment<byte>(new byte[_payloadLength]);
+                    if (null == Notification.Payload.Array || _payloadLength != Notification.Payload.Count)
+                        Notification.Payload = new ArraySegment<byte>(new byte[_payloadLength]);
 
                     ++i;
                     ++_index;
@@ -130,16 +124,16 @@ namespace QuackApns.Parser
                     var copy = Math.Min(remaining, count - i);
 
                     if (copy > 1)
-                        Array.Copy(buffer, offset + i, _notification.Payload.Array, payloadIndex, copy);
+                        Array.Copy(buffer, offset + i, Notification.Payload.Array, payloadIndex, copy);
                     else
-                        _notification.Payload.Array[payloadIndex] = buffer[offset + i];
+                        Notification.Payload.Array[payloadIndex] = buffer[offset + i];
 
                     _index += copy;
                     i += copy;
 
                     if (copy == remaining)
                     {
-                        _done = true;
+                        IsDone = true;
 
                         break;
                     }
@@ -148,7 +142,5 @@ namespace QuackApns.Parser
 
             return i;
         }
-
-        #endregion
     }
 }

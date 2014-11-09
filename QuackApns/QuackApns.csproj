@@ -66,6 +66,7 @@
     <Compile Include="Data\ApnsNotificationGenerator.cs" />
     <Compile Include="Data\Device.cs" />
     <Compile Include="Data\DeviceRepository.cs" />
+    <Compile Include="Parser\ParserBase.cs" />
     <Compile Include="Utility\DateTimeExtensions.cs" />
     <Compile Include="IApnsPayloadReader.cs" />
     <Compile Include="IApnsPayloadWriter.cs" />
@@ -73,7 +74,7 @@
     <Compile Include="Network\INetConnectionHandler.cs" />
     <Compile Include="Network\NetServer.cs" />
     <Compile Include="Parser\IParser.cs" />
-    <Compile Include="Parser\Type0Parse.cs" />
+    <Compile Include="Parser\Type0Parser.cs" />
     <Compile Include="Parser\Type1Parser.cs" />
     <Compile Include="Parser\Type2Parser.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

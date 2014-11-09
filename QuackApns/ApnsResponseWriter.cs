@@ -18,14 +18,17 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
+using System.IO;
 
-namespace QuackApns.Parser
+namespace QuackApns
 {
-    interface IParser
+    public class ApnsResponseWriter
     {
-        bool IsDone { get; }
-        void Start(ApnsNotification notification, Action<ApnsResponse> reportError);
-        int Parse(byte[] buffer, int offset, int count);
+        public void Write(Stream stream, ApnsResponse response)
+        {
+            stream.WriteByte(8);
+
+            ApnsStreamExtensions.WriteBigEndian(stream, response.Identifier);
+        }
     }
 }

@@ -36,7 +36,7 @@ namespace TestServer
         {
             var pushServer = new NetServer(ct => Task.FromResult<INetConnectionHandler>(new ApnsNotificationReader()));
 
-            var feedbackServer = new NetServer(ct => Task.FromResult<INetConnectionHandler>(new NetConnectionHandler()));
+            var feedbackServer = new NetServer(ct => Task.FromResult<INetConnectionHandler>(new DelegateNetConnectionHandler()));
 
             var certificate = await IsolatedStorageCertificates.GetCertificateAsync(hostname, ServerP12File, false, cancellationToken).ConfigureAwait(false);
 

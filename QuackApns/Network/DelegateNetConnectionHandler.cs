@@ -18,16 +18,55 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace QuackApns.Network
 {
-    public interface INetConnectionHandler
+    public class DelegateNetConnectionHandler : INetConnectionHandler
     {
-        Task<long> ReadAsync(Stream stream, CancellationToken cancellationToken);
-        Task<long> WriteAsync(Stream stream, CancellationToken cancellationToken);
+        static readonly Task<long> ZeroResult = Task.FromResult(0L);
 
+        public Func<Stream, CancellationToken, Task<long>> Write { get; set; }
+
+        public Func<Stream, CancellationToken, Task<long>> Read { get; set; }
+
+        public Func<CancellationToken, Task> Close { get; set; }
+
+        #region INetConnectionHandler Members
+
+        public Task<long> ReadAsync(Stream stream, CancellationToken cancellationToken)
+        {
+            var readAsync = Read;
+
+            if (null == readAsync)
+                return ZeroResult;
+
+            return readAsync(stream, cancellationToken);
+        }
+
+        public Task<long> WriteAsync(Stream stream, CancellationToken cancellationToken)
+        {
+            var writeAsync = Write;
+
+            if (null == writeAsync)
+                return ZeroResult;
+
+            return writeAsync(stream, cancellationToken);
+        }
+
+        public Task CloseAsync(CancellationToken cancellationToken)
+        {
+            var closeAsync = Close;
+
+            if (null == closeAsync)
+                return ZeroResult;
+
+            return closeAsync(cancellationToken);
+        }
+
+        #endregion
     }
 }

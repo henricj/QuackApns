@@ -66,6 +66,7 @@
     <Compile Include="Data\ApnsNotificationGenerator.cs" />
     <Compile Include="Data\Device.cs" />
     <Compile Include="Data\DeviceRepository.cs" />
+    <Compile Include="Network\DelegateNetConnectionHandler.cs" />
     <Compile Include="Parser\ParserBase.cs" />
     <Compile Include="Utility\DateTimeExtensions.cs" />
     <Compile Include="IApnsPayloadReader.cs" />

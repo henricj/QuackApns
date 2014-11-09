@@ -22,6 +22,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using QuackApns.Network;
@@ -41,12 +42,16 @@ namespace QuackApns
         long _messageCount;
         IParser _parser;
         long _readBytes;
+        long _totalTicks;
 
         #region INetConnectionHandler Members
 
         public async Task<long> ReadAsync(Stream stream, CancellationToken cancellationToken)
         {
             var total = 0L;
+
+            var sw = Stopwatch.StartNew();
+
             try
             {
                 var readBuffer = new byte[16 * 1024];
@@ -96,6 +101,10 @@ namespace QuackApns
             }
             finally
             {
+                sw.Stop();
+
+                Interlocked.Add(ref _totalTicks, sw.ElapsedTicks);
+
                 _doneReading.TrySetResult(null);
             }
 
@@ -149,7 +158,17 @@ namespace QuackApns
 
         public Task CloseAsync(CancellationToken cancellationToken)
         {
-            Debug.WriteLine("ApnsNotificationReader {0:N3} kMsg {1:F2}MB", _messageCount / 1000.0, _readBytes * (1.0 / (1024 * 1024)));
+            var messages = Interlocked.Read(ref _messageCount);
+            var read = Interlocked.Read(ref _readBytes);
+            var elapsed = TimeSpan.FromTicks((long)Math.Round((1e7) * Interlocked.Read(ref _totalTicks) / (double)Stopwatch.Frequency));
+
+            var sb = new StringBuilder();
+
+            sb.AppendFormat("Read {0:N3} kMsg totaling {1:F2}MB in {2} at {3:F2}MB/s", messages / 1000.0, read / (1024.0 * 1024.0), elapsed, read / (elapsed.TotalSeconds * 1024.0 * 1024.0));
+            sb.AppendLine();
+            sb.AppendFormat("     {0:F2} kMsg/s averaging {1:F2} bytes/Msg", messages / elapsed.TotalMilliseconds, read / (double)messages);
+
+            Console.WriteLine(sb.ToString());
 
             return TplHelpers.CompletedTask;
         }

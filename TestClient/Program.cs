@@ -118,8 +118,8 @@ namespace TestClient
 
                         if (elapsed > TimeSpan.Zero && messages > 0)
                         {
-                            Console.WriteLine("Wrote {0:N0} kMsg totaling {1:F2}MB in {2} at {3:F2}MB/s", messages / 1000.0, written / (1024.0 * 1024.0), elapsed, written / (elapsed.TotalSeconds * 1024.0 * 1024.0));
-                            Console.WriteLine("Wrote {0:F2} kMsg/s averaging {1} bytes/Msg", messages / elapsed.TotalMilliseconds, written / (double)messages);
+                            Console.WriteLine("Wrote {0:N3} kMsg totaling {1:F2}MB in {2} at {3:F2}MB/s", messages / 1000.0, written / (1024.0 * 1024.0), elapsed, written / (elapsed.TotalSeconds * 1024.0 * 1024.0));
+                            Console.WriteLine("Wrote {0:F2} kMsg/s averaging {1:F2} bytes/Msg", messages / elapsed.TotalMilliseconds, written / (double)messages);
                         }
 
                         Console.WriteLine("Done " + t.Result);
@@ -145,7 +145,7 @@ namespace TestClient
 
             var elapsed = sw.Elapsed;
 
-            Console.WriteLine("Created {0:N0} kMsg in {1} ({2:F2}kMsg/s)", count / 1000.0, elapsed, count / elapsed.TotalMilliseconds);
+            Console.WriteLine("Created {0:N3} kMsg in {1} ({2:F2}kMsg/s)", count / 1000.0, elapsed, count / elapsed.TotalMilliseconds);
 
             return notifications;
         }

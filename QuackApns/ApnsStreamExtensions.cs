@@ -23,11 +23,9 @@ using System.IO;
 
 namespace QuackApns
 {
-    public sealed class ApnsWriter
+    public static class ApnsStreamExtensions
     {
-        // https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/Chapters/CommunicatingWIthAPS.html
-
-        void WriteBigEndian(Stream stream, uint value)
+        public static void WriteBigEndian(Stream stream, uint value)
         {
             stream.WriteByte((byte)(value >> 24));
             stream.WriteByte((byte)(value >> 16));
@@ -35,13 +33,13 @@ namespace QuackApns
             stream.WriteByte((byte)value);
         }
 
-        void WriteBigEndian(Stream stream, ushort value)
+        public static void WriteBigEndian(Stream stream, ushort value)
         {
             stream.WriteByte((byte)(value >> 8));
             stream.WriteByte((byte)value);
         }
 
-        void WriteBlock(Stream stream, ApnsItemId itemId, byte[] buffer, int offset, int count)
+        public static void WriteBlock(Stream stream, ApnsItemId itemId, byte[] buffer, int offset, int count)
         {
             if (count > ushort.MaxValue)
                 throw new ArgumentOutOfRangeException("count", "buffer is too long");
@@ -57,47 +55,34 @@ namespace QuackApns
             stream.Write(buffer, offset, count);
         }
 
-        public void Write(Stream stream, int identifier, int expirationEpoch, byte priority, byte[] deviceId, byte[] payload, int payloadOffset, int payloadCount)
-        {
-            // iOS 8 supports 2k?
-            if (payloadCount > 2048) //if (message.Length > 256)
-                throw new ArgumentOutOfRangeException("payload", "message is too big");
-
-            var frameLength = 3 + deviceId.Length // device token
-                              + 3 + payloadCount // payload
-                              + 3 + 4 // identifier
-                              + 3 + 4 // expiration
-                              + 3 + 1; // priority
-
-            stream.WriteByte(2);
-            WriteBigEndian(stream, (uint)frameLength);
-
-            WriteBlock(stream, ApnsItemId.DeviceToken, deviceId, 0, deviceId.Length);
-
-            WriteBlock(stream, ApnsItemId.Payload, payload, payloadOffset, payloadCount);
-
-            WriteItemHeader(stream, ApnsItemId.Identifier, 4);
-            WriteBigEndian(stream, (uint)identifier);
-
-            WriteItemHeader(stream, ApnsItemId.Expiration, 4);
-            WriteBigEndian(stream, (uint)expirationEpoch);
-
-            WriteItemHeader(stream, ApnsItemId.Priority, 1);
-            stream.WriteByte(priority);
-        }
-
-        public void Write(Stream stream, ApnsNotification notification)
-        {
-            var payload = notification.Payload;
-
-            Write(stream, notification.Identifier, notification.ExpirationEpoch, notification.Priority, notification.Device, payload.Array, payload.Offset, payload.Count);
-        }
-
-        void WriteItemHeader(Stream stream, ApnsItemId itemId, ushort length)
+        public static void WriteItemHeader(Stream stream, ApnsItemId itemId, ushort length)
         {
             stream.WriteByte((byte)itemId);
             stream.WriteByte((byte)(length >> 8));
             stream.WriteByte((byte)length);
+        }
+
+        public static uint ReadBigEndianUint(Stream stream)
+        {
+            return (uint)
+                ((stream.ReadByte() << 24)
+                 | (stream.ReadByte() << 16)
+                 | (stream.ReadByte() << 8)
+                 | stream.ReadByte());
+        }
+
+        public static ushort ReadBigEndianUshort(Stream stream)
+        {
+            return (ushort)
+                ((stream.ReadByte() << 8)
+                 | stream.ReadByte());
+        }
+
+        public static ushort ReadItemHeader(Stream stream, out ApnsItemId itemId)
+        {
+            itemId = (ApnsItemId)stream.ReadByte();
+
+            return (ushort)((stream.ReadByte() << 8) | stream.ReadByte());
         }
     }
 }

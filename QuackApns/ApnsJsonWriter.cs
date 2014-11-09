@@ -26,13 +26,13 @@ namespace QuackApns
 {
     public sealed class ApnsJsonWriter : IDisposable
     {
-        readonly ApnsWriter _apnsWriter;
+        readonly ApnsNotificationWriter _apnsWriter;
         readonly MemoryStream _jsonStream = new MemoryStream(256);
         readonly JsonWriter _jsonWriter;
 
-        public ApnsJsonWriter(ApnsWriter apnsWriter = null)
+        public ApnsJsonWriter(ApnsNotificationWriter apnsWriter = null)
         {
-            _apnsWriter = apnsWriter ?? new ApnsWriter();
+            _apnsWriter = apnsWriter ?? new ApnsNotificationWriter();
             _jsonWriter = new JsonTextWriter(new StreamWriter(_jsonStream));
         }
 

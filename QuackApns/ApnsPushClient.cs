@@ -33,7 +33,7 @@ namespace QuackApns
     public class ApnsPushClient : INetConnectionHandler
     {
         const int BufferSize = 1024 * 1024;
-        readonly ApnsWriter _writer = new ApnsWriter();
+        readonly ApnsNotificationWriter _writer = new ApnsNotificationWriter();
         MemoryStream _bufferStream = new MemoryStream(BufferSize);
         int _identifier;
         MemoryStream _writeStream = new MemoryStream(BufferSize);

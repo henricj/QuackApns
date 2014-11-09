@@ -146,28 +146,5 @@ namespace QuackApns
                 }
             }
         }
-
-        uint ReadBigEndianUint(Stream stream)
-        {
-            return (uint)
-                ((stream.ReadByte() << 24)
-                 | (stream.ReadByte() << 16)
-                 | (stream.ReadByte() << 8)
-                 | stream.ReadByte());
-        }
-
-        ushort ReadBigEndianUshort(Stream stream)
-        {
-            return (ushort)
-                ((stream.ReadByte() << 8)
-                 | stream.ReadByte());
-        }
-
-        ushort ReadItemHeader(Stream stream, out ApnsItemId itemId)
-        {
-            itemId = (ApnsItemId)stream.ReadByte();
-
-            return (ushort)((stream.ReadByte() << 8) | stream.ReadByte());
-        }
     }
 }

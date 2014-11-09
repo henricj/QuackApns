@@ -58,7 +58,9 @@
     <Compile Include="ApnsPayload.cs" />
     <Compile Include="ApnsPushClient.cs" />
     <Compile Include="ApnsReader.cs" />
-    <Compile Include="ApnsWriter.cs" />
+    <Compile Include="ApnsResponseWriter.cs" />
+    <Compile Include="ApnsStreamExtensions.cs" />
+    <Compile Include="ApnsNotificationWriter.cs" />
     <Compile Include="Certificates\CertificateMaker.cs" />
     <Compile Include="Data\ApnsNotificationGenerator.cs" />
     <Compile Include="Data\Device.cs" />

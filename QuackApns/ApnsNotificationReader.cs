@@ -39,13 +39,13 @@ namespace QuackApns
         readonly IParser[] _parsers = { new Type0Parser(), new Type1Parser(), new Type2Parser() };
         long _messageCount;
         IParser _parser;
+        long _readBytes;
 
         #region INetConnectionHandler Members
 
         public async Task<long> ReadAsync(Stream stream, CancellationToken cancellationToken)
         {
             var total = 0L;
-
             try
             {
                 var readBuffer = new byte[16 * 1024];
@@ -69,6 +69,7 @@ namespace QuackApns
                             maxLength = length;
 
                         total += length;
+                        Interlocked.Add(ref _readBytes, length);
 
                         var tmp = readBuffer;
                         readBuffer = parseBuffer;
@@ -80,19 +81,17 @@ namespace QuackApns
                     if (length > 0)
                         Parse(parseBuffer, 0, length);
                 }
-
-                return total;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine("Read failed: " + ex.Message);
-
-                return total;
             }
             finally
             {
                 _doneReading.TrySetResult(null);
             }
+
+            return total;
         }
 
         public async Task<long> WriteAsync(Stream stream, CancellationToken cancellationToken)
@@ -133,6 +132,8 @@ namespace QuackApns
 
         public Task CloseAsync(CancellationToken cancellationToken)
         {
+            Debug.WriteLine("ApnsNotificationReader {0:N} kMsg {1:F2}MB", _messageCount / 1000, _readBytes * (1.0 / (1024 * 1024)));
+
             return TplHelpers.CompletedTask;
         }
 

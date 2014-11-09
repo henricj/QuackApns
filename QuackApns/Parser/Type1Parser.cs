@@ -115,11 +115,11 @@ namespace QuackApns.Parser
                     ++i;
                     ++_index;
                 }
-                else if (_index < 8 + 2 + _tokenLength + 2 + _payloadLength)
+                else
                 {
                     var payloadIndex = _index - (8 + 2 + _tokenLength + 2);
 
-                    var remaining = _tokenLength - payloadIndex;
+                    var remaining = _payloadLength - payloadIndex;
 
                     var copy = Math.Min(remaining, count - i);
 

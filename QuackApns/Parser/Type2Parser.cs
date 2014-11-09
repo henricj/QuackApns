@@ -72,7 +72,7 @@ namespace QuackApns.Parser
                         _frameBuffer.SetLength(0);
                     }
                 }
-                else if (_index < 4 + _frameSize)
+                else
                 {
                     var remaining = (int)(_frameSize - _frameBuffer.Length);
 

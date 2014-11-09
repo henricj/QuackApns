@@ -34,18 +34,24 @@ namespace QuackApns
     public class ApnsPushClient : INetConnectionHandler
     {
         const int BufferSize = 1024 * 1024;
+        readonly BufferBlock<ICollection<ApnsNotification>> _bufferBlock = new BufferBlock<ICollection<ApnsNotification>>();
         readonly ApnsNotificationWriter _writer = new ApnsNotificationWriter();
         MemoryStream _bufferStream = new MemoryStream(BufferSize);
         int _identifier;
+        long _messageCount;
         MemoryStream _writeStream = new MemoryStream(BufferSize);
         Task _writeTask;
         long _writeTotal;
-        long _messageCount;
 
-        readonly BufferBlock<ICollection<ApnsNotification>> _bufferBlock = new BufferBlock<ICollection<ApnsNotification>>();
+        public long MessageCount
+        {
+            get { return Interlocked.Read(ref _messageCount); }
+        }
 
-        public long MessageCount { get { return Interlocked.Read(ref _messageCount); } }
-        public long BytesWritten { get { return Interlocked.Read(ref _writeTotal); } }
+        public long BytesWritten
+        {
+            get { return Interlocked.Read(ref _writeTotal); }
+        }
 
         #region INetConnectionHandler Members
 

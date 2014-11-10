@@ -63,13 +63,17 @@ namespace QuackApns
 
             try
             {
-                var count = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
+                for (; ; )
+                {
+                    var count = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
 
-                total += count;
+                    if (count < 1)
+                        break;
 
-                // Parse response...
+                    total += count;
 
-                stream.Close(); // Only errors are ever sent, so we stop
+                    // TODO: Parse response...
+                }
             }
             catch (Exception ex)
             {

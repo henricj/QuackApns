@@ -486,6 +486,46 @@ namespace QuackApns
                         }
                     }
                 }
+
+                if (!foundIdentifier && null != _pendingWrite)
+                {
+                    var completed = false;
+
+                    foreach (var notification in _pendingWrite.Notifications)
+                    {
+                        var lastDevice = notification.Devices.Last();
+
+                        if (IsCompleted(lastDevice, identifier))
+                        {
+                            // All have been accepted
+                            notification.DeviceIndex = notification.Devices.Count;
+                            completed = true;
+                        }
+                        else
+                        {
+                            if (UpdateNotificationDeviceIndex(notification, identifier, isError))
+                                break;
+                        }
+                    }
+
+                    if (completed)
+                    {
+                        var notifications = _pendingWrite.Notifications.ToArray();
+
+                        _pendingWrite.Notifications.Clear();
+
+                        foreach (var notification in notifications)
+                        {
+                            if (null != notification && null != notification.Devices && 0 != notification.Devices.Count
+                                && notification.DeviceIndex == notification.Devices.Count)
+                            {
+                                CompleteNotification(notification);
+                            }
+                            else
+                                _pendingWrite.Notifications.Add(notification);
+                        }
+                    }
+                }
             }
         }
 

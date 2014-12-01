@@ -397,17 +397,20 @@ namespace QuackApns.SqlServerRepository
             using (var cmd = _connection.CreateCommand())
             {
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.CommandText = "Quack.CompleteBatch";
+                cmd.CommandText = "Quack.CompletePartialBatch";
                 cmd.Parameters.AddWithValue("@NotificationSessionId", notificationId);
                 cmd.Parameters.AddWithValue("@NotificationBatchId", batchId);
-                cmd.Parameters.AddWithValue("@Devices", devices.Select(deviceId =>
-                {
-                    var record = new SqlDataRecord(sqlMetaData);
+                var devicesParam = cmd.Parameters.Add("@Devices", SqlDbType.Structured);
 
-                    record.SetInt32(0, deviceId);
+                devicesParam.Value = devices.Select(
+                    deviceId =>
+                    {
+                        var record = new SqlDataRecord(sqlMetaData);
 
-                    return record;
-                }));
+                        record.SetInt32(0, deviceId);
+
+                        return record;
+                    });
 
                 await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }

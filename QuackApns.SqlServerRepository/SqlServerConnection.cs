@@ -26,7 +26,6 @@ using System.Data.SqlClient;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -274,10 +273,10 @@ namespace QuackApns.SqlServerRepository
 
                     while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                     {
-                        var notificationId = (int)reader[notificationIdColumn];
-                        var expiration = (int)reader[expirationColumn];
-                        var priority = (byte)reader[priorityColumn];
-                        var payload = (byte[])reader[payloadColumn];
+                        var notificationId = reader.GetInt32(notificationIdColumn);
+                        var expiration = reader.GetInt32(expirationColumn);
+                        var priority = reader.GetByte(priorityColumn);
+                        var payload = reader.GetSqlBytes(payloadColumn).Value;
 
                         var notification = new SqlApnsNotification
                         {
@@ -302,11 +301,11 @@ namespace QuackApns.SqlServerRepository
 
                     while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                     {
-                        var notificationSessionId = (int)reader[notificationSessionIdColumn];
-                        var notificationId = (int)reader[notificationIdColumn];
-                        var batchId = (int)reader[notificationBatchIdColumn];
-                        var deviceId = (int)reader[deviceIdColumn];
-                        var token = (byte[])reader[tokenColumn];
+                        var notificationSessionId = reader.GetInt32(notificationSessionIdColumn);
+                        var notificationId = reader.GetInt32(notificationIdColumn);
+                        var batchId = reader.GetInt32(notificationBatchIdColumn);
+                        var deviceId = reader.GetInt32(deviceIdColumn);
+                        var token = reader.GetSqlBytes(tokenColumn).Value;
 
                         if (null == notificationSession
                             || notificationSession.NotificationId != notificationSessionId
@@ -340,7 +339,8 @@ namespace QuackApns.SqlServerRepository
                                 Debug.WriteLine("Adding session " + notificationSession.NotificationId + '/' + notificationSession.BatchId);
 
                                 notificationSessions[key] = notificationSession;
-                            }}
+                            }
+                        }
 
                         Debug.Assert(null != notificationSession, "There should not be any null sessions");
 

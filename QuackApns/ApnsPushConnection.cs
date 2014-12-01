@@ -40,6 +40,7 @@ namespace QuackApns
         const int BufferSize = 1024 * 1024;
         readonly Queue<WriteLog> _activeWrites = new Queue<WriteLog>();
         readonly BufferedWriter _bufferedWriter = new BufferedWriter(BufferSize);
+        readonly BufferBlock<ApnsDevice> _deviceErrorBlock = new BufferBlock<ApnsDevice>();
         readonly ConcurrentQueue<Tuple<ApnsErrorCode, uint>> _errorResponse = new ConcurrentQueue<Tuple<ApnsErrorCode, uint>>();
         readonly BufferBlock<ApnsNotification> _inputBlock;
         readonly BufferBlock<ApnsNotification> _outputBlock;
@@ -220,6 +221,8 @@ namespace QuackApns
             }
 
             _outputBlock.Complete();
+
+            _deviceErrorBlock.Complete();
 
             return TplHelpers.CompletedTask;
         }
@@ -419,7 +422,7 @@ namespace QuackApns
             Tuple<ApnsErrorCode, uint> errorResponse;
             while (_errorResponse.TryDequeue(out errorResponse))
             {
-                var isError = ApnsErrorCode.NoError != errorResponse.Item1;
+                var isError = ApnsErrorCode.NoError != errorResponse.Item1 && ApnsErrorCode.Shutdown != errorResponse.Item1;
 
                 var identifier = errorResponse.Item2;
 
@@ -463,7 +466,7 @@ namespace QuackApns
                         else
                         {
                             foundIdentifier = true;
-                            CompletePartialNotification(notification, identifier);
+                            CompletePartialNotification(notification, identifier, isError);
                         }
                     }
                 }
@@ -499,7 +502,7 @@ namespace QuackApns
             _outputBlock.Post(notification);
         }
 
-        void CompletePartialNotification(ApnsNotification notification, uint identifier)
+        void CompletePartialNotification(ApnsNotification notification, uint identifier, bool isError)
         {
             notification.IsFailed = false;
 
@@ -509,11 +512,16 @@ namespace QuackApns
 
             for (var i = notification.DeviceIndex; i < devices.Count; ++i)
             {
-                if (IsCompleted(devices[i], identifier))
+                var device = devices[i];
+
+                if (IsCompleted(device, identifier))
                     continue;
 
                 notification.DeviceIndex = i + 1;
                 found = true;
+
+                if (isError && device.Identifier == identifier + 1)
+                    _deviceErrorBlock.Post(device);
 
                 break;
             }

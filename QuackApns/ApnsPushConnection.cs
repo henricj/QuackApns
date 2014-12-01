@@ -91,7 +91,7 @@ namespace QuackApns
                     offset += count;
 
                     var i = 0;
-                    for (; i + 6 < offset; i += 6)
+                    for (; i + 6 <= offset; i += 6)
                         ParseErrorResponse(buffer, i);
 
                     var remaining = offset - i;
@@ -115,7 +115,7 @@ namespace QuackApns
 
             if (offset >= 6)
             {
-                for (var i = 0; i + 6 < offset; i += 6)
+                for (var i = 0; i + 6 <= offset; i += 6)
                     ParseErrorResponse(buffer, i);
             }
             else if (offset > 0)

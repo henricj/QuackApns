@@ -544,11 +544,15 @@ namespace QuackApns
                 if (IsCompleted(device, identifier))
                     continue;
 
-                notification.DeviceIndex = i + 1;
+                notification.DeviceIndex = i;
                 found = true;
 
                 if (isError && device.Identifier == identifier + 1)
+                {
+                    ++notification.DeviceIndex;
+
                     _deviceErrorBlock.Post(device);
+                }
 
                 break;
             }

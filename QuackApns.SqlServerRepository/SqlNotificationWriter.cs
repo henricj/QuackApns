@@ -97,18 +97,18 @@ namespace QuackApns.SqlServerRepository
             {
                 foreach (var completion in completions.Cast<SqlApnsNotification>())
                 {
-                    if (completion.IsFailed)
+                    if (completion.IsFailed || 0 == completion.DeviceIndex)
                     {
                         await connection.FailNotificationAsync(completion.NotificationId, completion.BatchId, CancellationToken.None).ConfigureAwait(false);
                         continue;
                     }
 
-                    if (null == completion.CompletedDevices)
+                    if (completion.DeviceIndex == completion.Devices.Count)
                         await connection.CompleteNotificationAsync(completion.NotificationId, completion.BatchId, CancellationToken.None).ConfigureAwait(false);
                     else
                     {
                         await connection.CompletePartialNotificationAsync(completion.NotificationId, completion.BatchId,
-                            completion.CompletedDevices.Cast<SqlApnsDevice>().Select(d => d.DeviceId),
+                            completion.Devices.Skip(completion.DeviceIndex).Cast<SqlApnsDevice>().Select(d => d.DeviceId),
                             CancellationToken.None).ConfigureAwait(false);
                     }
                 }

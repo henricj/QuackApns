@@ -29,8 +29,8 @@ namespace QuackApns
         public int ExpirationEpoch { get; set; }
         public ArraySegment<byte> Payload { get; set; }
         public byte Priority { get; set; }
-        public IReadOnlyCollection<ApnsDevice> Devices { get; set; }
-        public IReadOnlyCollection<ApnsDevice> CompletedDevices { get; set; }
+        public int DeviceIndex { get; set; }
+        public IReadOnlyList<ApnsDevice> Devices { get; set; }
         public bool IsFailed { get; set; }
     }
 }

@@ -281,13 +281,17 @@ namespace QuackApns
                 return;
             }
 
-            if (0 == notification.Devices.Count)
+            var devices = notification.Devices;
+
+            if (0 == devices.Count)
+            {
                 return;
 
             var flushThreshold = 128 + notification.Payload.Count;
 
-            foreach (var device in notification.Devices)
+            for (var i = notification.DeviceIndex; i < devices.Count; ++i)
             {
+                var device = devices[i];
                 device.Identifier = ++_identifier;
 
                 Interlocked.Increment(ref _notificationCount);
@@ -390,7 +394,7 @@ namespace QuackApns
         void CompleteNotification(ApnsNotification notification)
         {
             notification.IsFailed = false;
-            notification.CompletedDevices = null;
+            notification.DeviceIndex = notification.Devices.Count;
 
             _outputBlock.Post(notification);
         }
@@ -398,7 +402,24 @@ namespace QuackApns
         void CompletePartialNotification(ApnsNotification notification, uint identifier)
         {
             notification.IsFailed = false;
-            notification.CompletedDevices = notification.Devices.Where(d => IsCompleted(d, identifier)).ToArray();
+
+            var devices = notification.Devices;
+
+            var found = false;
+
+            for (var i = notification.DeviceIndex; i < devices.Count; ++i)
+            {
+                if (IsCompleted(devices[i], identifier))
+                    continue;
+
+                notification.DeviceIndex = i;
+                found = true;
+
+                break;
+            }
+
+            if (!found)
+                notification.DeviceIndex = notification.Devices.Count;
 
             _outputBlock.Post(notification);
         }
@@ -406,7 +427,6 @@ namespace QuackApns
         void FailNotification(ApnsNotification notification)
         {
             notification.IsFailed = true;
-            notification.CompletedDevices = null;
 
             _outputBlock.Post(notification);
         }
@@ -512,7 +532,7 @@ namespace QuackApns
 
         #region Nested type: FlushSentinel
 
-        class FlushSentinel : TaskCompletionSource<bool>, IReadOnlyCollection<ApnsDevice>
+        class FlushSentinel : TaskCompletionSource<bool>, IReadOnlyList<ApnsDevice>
         {
             public FlushSentinel(bool blocking)
             {
@@ -521,7 +541,7 @@ namespace QuackApns
 
             public bool IsBlocking { get; private set; }
 
-            #region IReadOnlyCollection<ApnsDevice> Members
+            #region IReadOnlyList<ApnsDevice> Members
 
             public int Count
             {
@@ -536,6 +556,11 @@ namespace QuackApns
             IEnumerator IEnumerable.GetEnumerator()
             {
                 throw new NotImplementedException();
+            }
+
+            public ApnsDevice this[int index]
+            {
+                get { throw new NotImplementedException(); }
             }
 
             #endregion

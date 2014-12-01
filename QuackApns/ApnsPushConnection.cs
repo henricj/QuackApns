@@ -425,9 +425,6 @@ namespace QuackApns
 
                 Debug.WriteLine("HandleErrorResponse " + isError + " " + identifier);
 
-                if (!isError)
-                    ++identifier;
-
                 var foundIdentifier = false;
 
                 while (_activeWrites.Count > 0)
@@ -458,7 +455,7 @@ namespace QuackApns
 
                         var difference = (int)(identifier - lastDevice.Identifier);
 
-                        if (difference > 0)
+                        if (difference >= 0)
                         {
                             // All have been accepted
                             CompleteNotification(notification);
@@ -477,7 +474,7 @@ namespace QuackApns
         {
             var difference = (int)(identifier - device.Identifier);
 
-            return difference > 0;
+            return difference >= 0;
         }
 
         void CompleteWrite(WriteLog writeLog)
@@ -515,7 +512,7 @@ namespace QuackApns
                 if (IsCompleted(devices[i], identifier))
                     continue;
 
-                notification.DeviceIndex = i;
+                notification.DeviceIndex = i + 1;
                 found = true;
 
                 break;

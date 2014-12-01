@@ -43,6 +43,7 @@ namespace QuackApns
         IParser _parser;
         long _readBytes;
         long _totalTicks;
+        uint _lastGoodIdentifier;
 
         #region INetConnectionHandler Members
 
@@ -209,6 +210,8 @@ namespace QuackApns
 
                     // TODO: Do something with the _notification.
 
+                    if (!_doneReading.Task.IsCompleted)
+                        _lastGoodIdentifier = _notification.Devices[0].Identifier;
                     _parser = null;
                 }
             }

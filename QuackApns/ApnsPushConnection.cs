@@ -194,7 +194,10 @@ namespace QuackApns
             }
 
             if (null != _pendingWrite)
+            {
                 FailWrite(_pendingWrite);
+                _pendingWrite = null;
+            }
 
             _pendingWrite = null;
 

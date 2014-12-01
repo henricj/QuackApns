@@ -98,6 +98,89 @@ namespace QuackApns.Parser
         }
 
         void ParseFrame()
-        { }
+        {
+            _frameBuffer.Seek(0, SeekOrigin.Begin);
+
+            ApnsResponse response = null;
+
+            for (; ; )
+            {
+                var itemId = _frameBuffer.ReadByte();
+
+                if (itemId < 0)
+                    break; // EOF
+
+                var itemLength = ApnsStreamExtensions.ReadBigEndianUshort(_frameBuffer);
+
+                switch ((ApnsItemId)itemId)
+                {
+                    case ApnsItemId.Identifier:
+                        if (4 != itemLength)
+                            response = new ApnsResponse { ErrorCode = ApnsErrorCode.ProcessingError };
+                        else
+                        {
+                            var identifier = ApnsStreamExtensions.ReadBigEndianUint(_frameBuffer);
+
+                            Device.Identifier = identifier;
+                        }
+                        break;
+                    case ApnsItemId.DeviceToken:
+                        if (ApnsConstants.DeviceTokenLength != itemLength)
+                            response = new ApnsResponse { ErrorCode = ApnsErrorCode.InvalidTokenSize };
+                        else
+                            _frameBuffer.Read(Device.Token, 0, ApnsConstants.DeviceTokenLength);
+
+                        break;
+                    case ApnsItemId.Expiration:
+                        if (4 != itemLength)
+                            response = new ApnsResponse { ErrorCode = ApnsErrorCode.ProcessingError };
+                        else
+                        {
+                            Notification.ExpirationEpoch = (int)ApnsStreamExtensions.ReadBigEndianUint(_frameBuffer);
+                        }
+                        break;
+                    case ApnsItemId.Priority:
+                        if (1 != itemLength)
+                            response = new ApnsResponse { ErrorCode = ApnsErrorCode.ProcessingError };
+                        else
+                        {
+                            var priority = _frameBuffer.ReadByte();
+
+                            if (priority < 0)
+                                response = new ApnsResponse { ErrorCode = ApnsErrorCode.ProcessingError };
+
+                            Notification.Priority = (byte)priority;
+                        }
+                        break;
+                    case ApnsItemId.Payload:
+                        //if (itemLength > 64)
+                        if (itemLength > 2048)
+                            response = new ApnsResponse { ErrorCode = ApnsErrorCode.InvalidPayloadSize };
+
+                        var buffer = Notification.Payload.Array;
+
+                        if (null == buffer || buffer.Length < itemLength)
+                            buffer = new byte[itemLength];
+
+                        var read = _frameBuffer.Read(buffer, 0, itemLength);
+
+                        if (read != itemLength)
+                            response = new ApnsResponse { ErrorCode = ApnsErrorCode.InvalidPayloadSize };
+
+                        Notification.Payload = new ArraySegment<byte>(buffer, 0, read);
+
+                        break;
+                    default:
+                        _frameBuffer.Seek(itemLength, SeekOrigin.Current);
+                        break;
+                }
+            }
+
+            if (null != response)
+            {
+                response.Identifier = Device.Identifier;
+                ReportError(response);
+            }
+        }
     }
 }

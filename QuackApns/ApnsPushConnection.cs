@@ -42,8 +42,8 @@ namespace QuackApns
         readonly BufferedWriter _bufferedWriter = new BufferedWriter(BufferSize);
         readonly BufferBlock<ApnsDevice> _deviceErrorBlock = new BufferBlock<ApnsDevice>();
         readonly ConcurrentQueue<Tuple<ApnsErrorCode, uint>> _errorResponse = new ConcurrentQueue<Tuple<ApnsErrorCode, uint>>();
-        readonly BufferBlock<ApnsNotification> _inputBlock;
-        readonly BufferBlock<ApnsNotification> _outputBlock;
+        readonly BufferBlock<ApnsNotification> _inputBlock = new BufferBlock<ApnsNotification>();
+        readonly BufferBlock<ApnsNotification> _outputBlock = new BufferBlock<ApnsNotification>();
         readonly ApnsNotificationWriter _writer = new ApnsNotificationWriter();
 
         uint _identifier;
@@ -52,12 +52,6 @@ namespace QuackApns
         WriteLog _pendingWrite;
         bool _readOk;
         BufferBlock<ApnsNotification> _retryBlock;
-
-        public ApnsPushConnection()
-        {
-            _outputBlock = new BufferBlock<ApnsNotification>();
-            _inputBlock = new BufferBlock<ApnsNotification>();
-        }
 
         public long NotificationCount
         {

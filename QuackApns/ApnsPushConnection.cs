@@ -124,6 +124,14 @@ namespace QuackApns
                 Debug.WriteLine("Invalid error response: " + offset);
             }
 
+            if (0 == total)
+            {
+                // We have a clean shutdown, so we will assume that everything
+                // that has been written has been accepted.
+                _errorResponse.Enqueue(null);
+                this.Post(null);
+            }
+
             return total;
         }
 
@@ -422,6 +430,19 @@ namespace QuackApns
             Tuple<ApnsErrorCode, uint> errorResponse;
             while (_errorResponse.TryDequeue(out errorResponse))
             {
+                if (null == errorResponse)
+                {
+                    // Accept everything...
+                    while (_activeWrites.Count > 0)
+                    {
+                        var write = _activeWrites.Dequeue();
+
+                        CompleteWrite(write);
+                    }
+
+                    continue;
+                }
+
                 var isError = ApnsErrorCode.NoError != errorResponse.Item1 && ApnsErrorCode.Shutdown != errorResponse.Item1;
 
                 var identifier = errorResponse.Item2;

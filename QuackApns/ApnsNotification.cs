@@ -31,6 +31,5 @@ namespace QuackApns
         public byte Priority { get; set; }
         public int DeviceIndex { get; set; }
         public IReadOnlyList<ApnsDevice> Devices { get; set; }
-        public bool IsFailed { get; set; }
     }
 }

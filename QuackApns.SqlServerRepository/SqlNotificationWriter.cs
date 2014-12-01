@@ -19,24 +19,29 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using QuackApns.Random;
 
 namespace QuackApns.SqlServerRepository
 {
     public sealed class SqlNotificationWriter : IDisposable
     {
         readonly BatchBlock<ApnsNotification> _bufferBlock = new BatchBlock<ApnsNotification>(20);
-        readonly ActionBlock<ApnsNotification[]> _sqlWriterBlock = new ActionBlock<ApnsNotification[]>((Func<ApnsNotification[], Task>)SqlWriteAsync);
+        readonly ActionBlock<ApnsNotification[]> _sqlWriterBlock;
         readonly TransformBlock<ApnsNotification, ApnsNotification> _timeoutBlock;
         readonly Timer _timeoutTimer;
         SqlServerConnection _connection;
+        IRandomGenerator<ulong> _rng;
 
         public SqlNotificationWriter()
         {
+            _sqlWriterBlock = new ActionBlock<ApnsNotification[]>((Func<ApnsNotification[], Task>)SqlWriteAsync);
+
             _timeoutBlock = new TransformBlock<ApnsNotification, ApnsNotification>(c =>
             {
                 _timeoutTimer.Change(2500, Timeout.Infinite);
@@ -53,10 +58,7 @@ namespace QuackApns.SqlServerRepository
                 block.TriggerBatch();
             }, _bufferBlock, Timeout.Infinite, Timeout.Infinite);
 
-            _timeoutBlock.Completion.ContinueWith(obj =>
-            {
-                _timeoutTimer.Change(Timeout.Infinite, Timeout.Infinite);
-            }, TaskContinuationOptions.ExecuteSynchronously);
+            _timeoutBlock.Completion.ContinueWith(obj => { _timeoutTimer.Change(Timeout.Infinite, Timeout.Infinite); }, TaskContinuationOptions.ExecuteSynchronously);
 
             _timeoutBlock.LinkTo(_bufferBlock, new DataflowLinkOptions { PropagateCompletion = true });
             _bufferBlock.LinkTo(_sqlWriterBlock, new DataflowLinkOptions { PropagateCompletion = true });
@@ -89,27 +91,52 @@ namespace QuackApns.SqlServerRepository
 
         #endregion
 
-        static async Task SqlWriteAsync(ApnsNotification[] completions)
+        async Task SqlWriteAsync(ApnsNotification[] completions)
         {
-            Console.WriteLine("SqlWriteAsync " + completions.Length);
+            Debug.WriteLine("SqlWriteAsync " + completions.Length);
 
-            using (var connection = await SqlServerConnection.ConnectAsync(CancellationToken.None).ConfigureAwait(false))
+            var delay = 123.0;
+            var i = 0;
+
+            for (var outerRetry = 0; outerRetry < 3; ++outerRetry)
             {
-                foreach (var completion in completions.Cast<SqlApnsNotification>())
+                using (var connection = await SqlServerConnection.ConnectAsync(CancellationToken.None).ConfigureAwait(false))
                 {
-                    if (completion.IsFailed || 0 == completion.DeviceIndex)
+                    for (var innerRetry = 0; innerRetry < 2; ++innerRetry)
                     {
-                        await connection.FailNotificationAsync(completion.NotificationId, completion.BatchId, CancellationToken.None).ConfigureAwait(false);
-                        continue;
-                    }
+                        try
+                        {
+                            for (; i < completions.Length; ++i)
+                            {
+                                var completion = (SqlApnsNotification)completions[i];
 
-                    if (completion.DeviceIndex == completion.Devices.Count)
-                        await connection.CompleteNotificationAsync(completion.NotificationId, completion.BatchId, CancellationToken.None).ConfigureAwait(false);
-                    else
-                    {
-                        await connection.CompletePartialNotificationAsync(completion.NotificationId, completion.BatchId,
-                            completion.Devices.Skip(completion.DeviceIndex).Cast<SqlApnsDevice>().Select(d => d.DeviceId),
-                            CancellationToken.None).ConfigureAwait(false);
+                                if (0 == completion.DeviceIndex)
+                                    await connection.FailNotificationAsync(completion.NotificationId, completion.BatchId, CancellationToken.None).ConfigureAwait(false);
+                                else if (completion.DeviceIndex == completion.Devices.Count)
+                                    await connection.CompleteNotificationAsync(completion.NotificationId, completion.BatchId, CancellationToken.None).ConfigureAwait(false);
+                                else
+                                {
+                                    await connection.CompletePartialNotificationAsync(completion.NotificationId, completion.BatchId,
+                                        completion.Devices.Take(completion.DeviceIndex).Cast<SqlApnsDevice>().Select(d => d.DeviceId),
+                                        CancellationToken.None).ConfigureAwait(false);
+                                }
+                            }
+
+                            return;
+                        }
+                        catch (SqlException ex)
+                        {
+                            // TODO: Only retry on those exceptions where it make sense to do so...
+                            Debug.WriteLine("Update failed: " + ex.Message);
+                        }
+
+                        if (null == _rng)
+                            _rng = new XorShift1024Star();
+
+                        delay *= 1.3;
+
+                        await _rng.RandomDelay(TimeSpan.FromMilliseconds(delay), TimeSpan.FromMilliseconds(delay * 1.5), CancellationToken.None)
+                            .ConfigureAwait(false);
                     }
                 }
             }

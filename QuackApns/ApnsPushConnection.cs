@@ -517,7 +517,6 @@ namespace QuackApns
 
         void CompleteNotification(ApnsNotification notification)
         {
-            notification.IsFailed = false;
             notification.DeviceIndex = notification.Devices.Count;
 
             _outputBlock.Post(notification);
@@ -525,8 +524,18 @@ namespace QuackApns
 
         void CompletePartialNotification(ApnsNotification notification, uint identifier, bool isError)
         {
-            notification.IsFailed = false;
+            UpdateNotificationDeviceIndex(notification, identifier, isError);
 
+            _outputBlock.Post(notification);
+        }
+
+        void FailNotification(ApnsNotification notification)
+        {
+            _outputBlock.Post(notification);
+        }
+
+        bool UpdateNotificationDeviceIndex(ApnsNotification notification, uint identifier, bool isError)
+        {
             var devices = notification.Devices;
 
             var found = false;
@@ -550,14 +559,7 @@ namespace QuackApns
             if (!found)
                 notification.DeviceIndex = notification.Devices.Count;
 
-            _outputBlock.Post(notification);
-        }
-
-        void FailNotification(ApnsNotification notification)
-        {
-            notification.IsFailed = true;
-
-            _outputBlock.Post(notification);
+            return found;
         }
 
         async Task FlushBufferAsync(Stream stream, CancellationToken cancellationToken)

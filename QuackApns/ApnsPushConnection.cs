@@ -463,20 +463,18 @@ namespace QuackApns
                         if (null == notification)
                             continue;
 
+                        if (null == notification.Devices || 0 == notification.Devices.Count)
+                            continue;
+
                         if (foundIdentifier)
                         {
                             FailNotification(notification);
                             continue;
                         }
 
-                        if (null == notification.Devices || 0 == notification.Devices.Count)
-                            continue;
-
                         var lastDevice = notification.Devices.Last();
 
-                        var difference = (int)(identifier - lastDevice.Identifier);
-
-                        if (difference >= 0)
+                        if (IsCompleted(lastDevice, identifier))
                         {
                             // All have been accepted
                             CompleteNotification(notification);

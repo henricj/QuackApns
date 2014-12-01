@@ -28,6 +28,8 @@ namespace QuackApns
         {
             stream.WriteByte(8);
 
+            stream.WriteByte((byte)response.ErrorCode);
+
             ApnsStreamExtensions.WriteBigEndian(stream, response.Identifier);
         }
     }

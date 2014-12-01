@@ -46,9 +46,11 @@ namespace QuackApns
         readonly ApnsNotificationWriter _writer = new ApnsNotificationWriter();
 
         uint _identifier;
+        ApnsNotification _notification;
         long _notificationCount;
         WriteLog _pendingWrite;
         bool _readOk;
+        BufferBlock<ApnsNotification> _retryBlock;
 
         public ApnsPushConnection()
         {
@@ -129,14 +131,44 @@ namespace QuackApns
             var writerBlock = new ActionBlock<ApnsNotification>(notifications => WriteNotificationsAsync(notifications, stream, cancellationToken),
                 new ExecutionDataflowBlockOptions { CancellationToken = cancellationToken, BoundedCapacity = 1 });
 
-            using (_inputBlock.LinkTo(writerBlock, new DataflowLinkOptions { PropagateCompletion = true }))
+            try
             {
-                await writerBlock.Completion.ConfigureAwait(false);
+                // First, we retry anything still up in the air.
+                if (null != _retryBlock || _activeWrites.Count > 0 || null != _pendingWrite || null != _notification)
+                {
+                    var oldRetries = _retryBlock;
+
+                    _retryBlock = RebuildRetryBlock(oldRetries);
+
+                    _retryBlock.Complete();
+
+                    using (_retryBlock.LinkTo(writerBlock))
+                    {
+                        await _retryBlock.Completion.ConfigureAwait(false);
+                    }
+                }
+
+                // Now, process the normal input block...
+                using (_inputBlock.LinkTo(writerBlock, new DataflowLinkOptions { PropagateCompletion = true }))
+                {
+                    await writerBlock.Completion.ConfigureAwait(false);
+                }
+
+                await FlushBufferAsync(stream, cancellationToken).ConfigureAwait(false);
+
+                await _bufferedWriter.WaitAsync(stream, cancellationToken).ConfigureAwait(false);
             }
-
-            await FlushBufferAsync(stream, cancellationToken).ConfigureAwait(false);
-
-            await _bufferedWriter.WaitAsync(stream, cancellationToken).ConfigureAwait(false);
+            finally
+            {
+                try
+                {
+                    RetireCompletedWrites(_bufferedWriter.BytesWritten);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("HandleErrorResponses failed: " + ex.Message);
+                }
+            }
 
             return _bufferedWriter.BytesWritten;
         }
@@ -162,6 +194,19 @@ namespace QuackApns
                 FailWrite(_pendingWrite);
 
             _pendingWrite = null;
+
+            if (null != _retryBlock && 0 != _retryBlock.Count)
+            {
+                _retryBlock.Complete();
+
+                ApnsNotification apnsNotification;
+                while (_retryBlock.TryReceive(null, out apnsNotification))
+                {
+                    FailNotification(apnsNotification);
+                }
+
+                _retryBlock = null;
+            }
 
             _inputBlock.Complete();
 
@@ -239,6 +284,48 @@ namespace QuackApns
 
         #endregion
 
+        BufferBlock<ApnsNotification> RebuildRetryBlock(BufferBlock<ApnsNotification> oldRetries)
+        {
+            // This could cause further retries, so first we make
+            // room for a new retry block.
+
+            var retryBlock = new BufferBlock<ApnsNotification>();
+
+            while (_activeWrites.Count > 0)
+            {
+                var writeLog = _activeWrites.Dequeue();
+
+                foreach (var notification in writeLog.Notifications)
+                    retryBlock.Post(notification);
+            }
+
+            if (null != _pendingWrite)
+            {
+                foreach (var notification in _pendingWrite.Notifications)
+                    retryBlock.Post(notification);
+
+                _pendingWrite = null;
+            }
+
+            if (null != _notification)
+            {
+                retryBlock.Post(_notification);
+                _notification = null;
+            }
+
+            if (null != oldRetries && 0 != oldRetries.Count)
+            {
+                oldRetries.Complete();
+
+                ApnsNotification notification;
+
+                while (oldRetries.TryReceive(null, out notification))
+                    retryBlock.Post(notification);
+            }
+
+            return retryBlock;
+        }
+
         void ParseErrorResponse(byte[] buffer, int offset)
         {
             if (8 != buffer[offset])
@@ -257,26 +344,18 @@ namespace QuackApns
 
         async Task WriteNotificationsAsync(ApnsNotification notification, Stream stream, CancellationToken cancellationToken)
         {
+            _notification = notification;
+
             if (!_errorResponse.IsEmpty)
                 HandleErrorResponses();
 
             if (null == notification || null == notification.Devices)
             {
                 // The nulls are requests to flush.
-                await FlushBufferAsync(stream, cancellationToken).ConfigureAwait(false);
 
-                if (null == notification)
-                    return;
+                _notification = null;
 
-                var flushSentinel = notification.Devices as FlushSentinel;
-
-                if (null == flushSentinel)
-                    return;
-
-                if (flushSentinel.IsBlocking)
-                    await _bufferedWriter.WaitAsync(stream, cancellationToken).ConfigureAwait(false);
-
-                flushSentinel.TrySetResult(true);
+                await HandleFlushNotificationAsync(notification, stream, cancellationToken).ConfigureAwait(false);
 
                 return;
             }
@@ -285,13 +364,16 @@ namespace QuackApns
 
             if (0 == devices.Count)
             {
+                _notification = null;
                 return;
+            }
 
             var flushThreshold = 128 + notification.Payload.Count;
 
             for (var i = notification.DeviceIndex; i < devices.Count; ++i)
             {
                 var device = devices[i];
+
                 device.Identifier = ++_identifier;
 
                 Interlocked.Increment(ref _notificationCount);
@@ -302,6 +384,8 @@ namespace QuackApns
                     await FlushBufferAsync(stream, cancellationToken).ConfigureAwait(false);
             }
 
+            _notification = null;
+
             AddToPendingWrite(notification);
 
             if (!_errorResponse.IsEmpty)
@@ -309,6 +393,25 @@ namespace QuackApns
 
             if (0 == _inputBlock.Count)
                 TryFlushBuffer(stream, cancellationToken);
+        }
+
+        async Task<bool> HandleFlushNotificationAsync(ApnsNotification notification, Stream stream, CancellationToken cancellationToken)
+        {
+            await FlushBufferAsync(stream, cancellationToken).ConfigureAwait(false);
+
+            if (null == notification)
+                return true;
+
+            var flushSentinel = notification.Devices as FlushSentinel;
+
+            if (null == flushSentinel)
+                return true;
+
+            if (flushSentinel.IsBlocking)
+                await _bufferedWriter.WaitAsync(stream, cancellationToken).ConfigureAwait(false);
+
+            flushSentinel.TrySetResult(true);
+            return false;
         }
 
         void HandleErrorResponses()

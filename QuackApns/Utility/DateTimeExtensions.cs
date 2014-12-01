@@ -35,5 +35,15 @@ namespace QuackApns.Utility
         {
             return (int)Math.Round((time - EpochBase).TotalSeconds);
         }
+
+        public static long ToUnixEpoch(this DateTime time)
+        {
+            return (long)Math.Round((time.ToUniversalTime() - EpochBase).TotalSeconds);
+        }
+
+        public static int ToInt32UnixEpoch(this DateTime time)
+        {
+            return (int)Math.Round((time.ToUniversalTime() - EpochBase).TotalSeconds);
+        }
     }
 }

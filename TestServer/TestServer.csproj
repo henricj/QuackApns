@@ -53,6 +53,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\QuackApns.RedisRepository\QuackApns.RedisRepository.csproj">
+      <Project>{da01b508-bf4a-4e74-ba12-06c065ee2387}</Project>
+      <Name>QuackApns.RedisRepository</Name>
+    </ProjectReference>
     <ProjectReference Include="..\QuackApns\QuackApns.csproj">
       <Project>{2c725f0f-9c20-4a24-91b7-5dace5fcdf39}</Project>
       <Name>QuackApns</Name>

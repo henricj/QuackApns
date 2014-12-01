@@ -160,11 +160,11 @@ namespace QuackApns
         {
             var messages = Interlocked.Read(ref _messageCount);
             var read = Interlocked.Read(ref _readBytes);
-            var elapsed = TimeSpan.FromTicks((long)Math.Round((1e7) * Interlocked.Read(ref _totalTicks) / (double)Stopwatch.Frequency));
+            var elapsed = TimeSpan.FromTicks((long)Math.Round((1e7) * Interlocked.Read(ref _totalTicks) / Stopwatch.Frequency));
 
             var sb = new StringBuilder();
 
-            sb.AppendFormat("Read {0:N3} kMsg totaling {1:F2}MB in {2} at {3:F2}MB/s", messages / 1000.0, read / (1024.0 * 1024.0), elapsed, read / (elapsed.TotalSeconds * 1024.0 * 1024.0));
+            sb.AppendFormat("Read {0:N0} Msg totaling {1:F2}MB in {2} at {3:F2}MB/s", messages, read / (1024.0 * 1024.0), elapsed, read / (elapsed.TotalSeconds * 1024.0 * 1024.0));
             sb.AppendLine();
             sb.AppendFormat("     {0:F2} kMsg/s averaging {1:F2} bytes/Msg", messages / elapsed.TotalMilliseconds, read / (double)messages);
 

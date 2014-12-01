@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{CA39C27C-6B3E-4C71-802A-08AA66D94088}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>QuackApns.SqlServerRepository</RootNamespace>
+    <AssemblyName>QuackApns.SqlServerRepository</AssemblyName>
+    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Threading.Tasks.Dataflow, Version=4.5.23.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.Tpl.Dataflow.4.5.23\lib\portable-net45+win8+wpa81\System.Threading.Tasks.Dataflow.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="KeyDataReader.cs" />
+    <Compile Include="SqlApnsDevice.cs" />
+    <Compile Include="SqlApnsNotification.cs" />
+    <Compile Include="SqlNotificationWriter.cs" />
+    <Compile Include="SqlServerConnection.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\QuackApns\QuackApns.csproj">
+      <Project>{2c725f0f-9c20-4a24-91b7-5dace5fcdf39}</Project>
+      <Name>QuackApns</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <Content Include="sql\ApnsClient.Database.sql" />
+    <Content Include="sql\database.sql" />
+    <Content Include="sql\Quack.AbortBatch.StoredProcedure.sql" />
+    <Content Include="sql\Quack.ApplyRegistrations.StoredProcedure.sql" />
+    <Content Include="sql\Quack.ApplyRegistrationsTT.StoredProcedure.sql" />
+    <Content Include="sql\Quack.ApplyRegistrationsTV.StoredProcedure.sql" />
+    <Content Include="sql\Quack.CompleteBatch.StoredProcedure.sql" />
+    <Content Include="sql\Quack.CompletePartialBatch.StoredProcedure.sql" />
+    <Content Include="sql\Quack.Device.Table.sql" />
+    <Content Include="sql\Quack.DeviceNotification.Table.sql" />
+    <Content Include="sql\Quack.DeviceRegistration.Table.sql" />
+    <Content Include="sql\Quack.DeviceRegistrationTable.UserDefinedTableType.sql" />
+    <Content Include="sql\Quack.GetBatch.StoredProcedure.sql" />
+    <Content Include="sql\Quack.GetNotifications.StoredProcedure.sql" />
+    <Content Include="sql\Quack.GetNums.UserDefinedFunction.sql" />
+    <Content Include="sql\Quack.IntTable.UserDefinedTableType.sql" />
+    <Content Include="sql\Quack.Notification.Table.sql" />
+    <Content Include="sql\Quack.NotificationBatch.Table.sql" />
+    <Content Include="sql\Quack.NotificationGroup.Table.sql" />
+    <Content Include="sql\Quack.NotificationGroupDevice.Table.sql" />
+    <Content Include="sql\Quack.NotificationSession.Table.sql" />
+    <Content Include="sql\Quack.NotificationSessionCompletedDevice.Table.sql" />
+    <Content Include="sql\Quack.NotificationSessionDevice.Table.sql" />
+    <Content Include="sql\Quack.NotificationSessionGroup.Table.sql" />
+    <Content Include="sql\Quack.RegistrationTable.UserDefinedTableType.sql" />
+    <Content Include="sql\Quack.ReportPartialBatch.StoredProcedure.sql" />
+    <Content Include="sql\Quack.Schema.sql" />
+    <Content Include="sql\Quack.SendBroadcastNotification.StoredProcedure.sql" />
+    <Content Include="sql\Quack.SendGroupNotification.StoredProcedure.sql" />
+    <Content Include="sql\Quack.SendNotification.StoredProcedure.sql" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

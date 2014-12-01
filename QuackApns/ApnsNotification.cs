@@ -19,16 +19,18 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 
 namespace QuackApns
 {
     public class ApnsNotification
     {
         public byte Type { get; set; }
-        public byte[] Device { get; set; }
         public int ExpirationEpoch { get; set; }
-        public int Identifier { get; set; }
         public ArraySegment<byte> Payload { get; set; }
         public byte Priority { get; set; }
+        public IReadOnlyCollection<ApnsDevice> Devices { get; set; }
+        public IReadOnlyCollection<ApnsDevice> CompletedDevices { get; set; }
+        public bool IsFailed { get; set; }
     }
 }

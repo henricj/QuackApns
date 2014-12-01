@@ -19,6 +19,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Linq;
 
 namespace QuackApns.Parser
 {
@@ -61,8 +62,8 @@ namespace QuackApns.Parser
                     if (_tokenLength != ApnsConstants.DeviceTokenLength)
                         ReportError(null);
 
-                    if (null == Notification.Device || _tokenLength != Notification.Device.Length)
-                        Notification.Device = new byte[_tokenLength];
+                    if (_tokenLength != Device.Token.Length)
+                        ReportError(null);
                 }
                 else if (_index < 2 + _tokenLength)
                 {
@@ -73,9 +74,9 @@ namespace QuackApns.Parser
                     var copy = Math.Min(remaining, count - i);
 
                     if (copy > 1)
-                        Array.Copy(buffer, offset + i, Notification.Device, deviceIndex, copy);
+                        Array.Copy(buffer, offset + i, Device.Token, deviceIndex, copy);
                     else
-                        Notification.Device[deviceIndex] = buffer[offset + i];
+                        Device.Token[deviceIndex] = buffer[offset + i];
 
                     _index += copy;
                     i += copy;

@@ -18,6 +18,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using QuackApns.Utility;
 
 namespace QuackApns.Random
@@ -59,6 +60,11 @@ namespace QuackApns.Random
                 if (v < lessThan)
                     return v;
             }
+        }
+
+        public static double NextExponential(this IRandomGenerator randomGenerator, double lambda)
+        {
+            return -Math.Log(randomGenerator.NextDouble()) / lambda;
         }
     }
 }

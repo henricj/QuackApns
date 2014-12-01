@@ -43,21 +43,21 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\Microsoft.Tpl.Dataflow.4.5.23\lib\portable-net45+win8+wpa81\System.Threading.Tasks.Dataflow.dll</HintPath>
     </Reference>
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ApnsConstants.cs" />
     <Compile Include="ApnsErrorCode.cs" />
+    <Compile Include="ApnsFeedbackClient.cs" />
+    <Compile Include="ApnsFeedbackWriter.cs" />
+    <Compile Include="ApnsNotification.cs" />
+    <Compile Include="ApnsPushClient.cs" />
     <Compile Include="ApnsResponse.cs" />
     <Compile Include="ApnsItemId.cs" />
     <Compile Include="ApnsJsonWriter.cs" />
-    <Compile Include="ApnsNotification.cs" />
+    <Compile Include="ApnsDevice.cs" />
     <Compile Include="ApnsPayload.cs" />
-    <Compile Include="ApnsPushClient.cs" />
+    <Compile Include="ApnsPushConnection.cs" />
     <Compile Include="ApnsNotificationReader.cs" />
     <Compile Include="ApnsResponseWriter.cs" />
     <Compile Include="ApnsStreamExtensions.cs" />
@@ -66,8 +66,13 @@
     <Compile Include="Data\ApnsNotificationGenerator.cs" />
     <Compile Include="Data\Device.cs" />
     <Compile Include="Data\DeviceRepository.cs" />
+    <Compile Include="Data\KeyGenerator.cs" />
+    <Compile Include="IFeedbackSource.cs" />
+    <Compile Include="Network\BufferedWriter.cs" />
     <Compile Include="Network\DelegateNetConnectionHandler.cs" />
+    <Compile Include="NullNotificationResultHandler.cs" />
     <Compile Include="Parser\ParserBase.cs" />
+    <Compile Include="Random\RandomTimeExtensions.cs" />
     <Compile Include="Utility\DateTimeExtensions.cs" />
     <Compile Include="IApnsPayloadReader.cs" />
     <Compile Include="IApnsPayloadWriter.cs" />
@@ -89,6 +94,8 @@
     <Compile Include="Utility\BitTwiddling.cs" />
     <Compile Include="Utility\ConsoleCancel.cs" />
     <Compile Include="Utility\DeviceTokenConverter.cs" />
+    <Compile Include="Utility\Fletcher.cs" />
+    <Compile Include="Utility\FormatStreamWriter.cs" />
     <Compile Include="Utility\RingBufferReadStream.cs" />
     <Compile Include="Utility\TplHelpers.cs" />
   </ItemGroup>

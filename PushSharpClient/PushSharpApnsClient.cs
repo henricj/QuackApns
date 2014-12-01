@@ -42,7 +42,7 @@ namespace PushSharpClient
         {
             var sw = Stopwatch.StartNew();
 
-            const int count = 10 * 1000;
+            const int count = 10;// * 1000;
 
             var notifications = CreateNotificationBatch(count);
 
@@ -50,7 +50,7 @@ namespace PushSharpClient
 
             var createElapsed = sw.Elapsed;
 
-            Console.WriteLine("Created {0:N3} kMsg in {1} ({2:F2}kMsg/s)", count / 1000.0, createElapsed, count / createElapsed.TotalMilliseconds);
+            Console.WriteLine("Created {0:N0} Msg in {1} ({2:F2}kMsg/s)", count, createElapsed, count / createElapsed.TotalMilliseconds);
 
             var certificate = await IsolatedStorageCertificates.GetCertificateAsync("Client", ClientP12File, true, cancellationToken).ConfigureAwait(false);
 
@@ -79,6 +79,8 @@ namespace PushSharpClient
 
             var queueElapsed = sw.Elapsed;
 
+            await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken).ConfigureAwait(false);
+
             //Console.WriteLine("Waiting for Queue to Finish...");
 
             //Stop and wait for the queues to drains
@@ -86,7 +88,7 @@ namespace PushSharpClient
 
             var doneElapsed = sw.Elapsed - queueElapsed;
 
-            Console.WriteLine("Wrote {0:N3} kMsg in {1} ({2} queue {3} wait)", count / 1000.0, sw.Elapsed, queueElapsed, doneElapsed);
+            Console.WriteLine("Wrote {0:N0} Msg in {1} ({2} queue {3} wait)", count, sw.Elapsed, queueElapsed, doneElapsed);
             Console.WriteLine("Wrote {0:F2} kMsg/s", count / sw.Elapsed.TotalMilliseconds);
         }
 

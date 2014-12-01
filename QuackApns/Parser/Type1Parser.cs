@@ -79,8 +79,8 @@ namespace QuackApns.Parser
                     if (_tokenLength != ApnsConstants.DeviceTokenLength)
                         ReportError(new ApnsResponse { ErrorCode = ApnsErrorCode.InvalidTokenSize, Identifier = _identifier});
 
-                    if (null == Notification.Device || _tokenLength != Notification.Device.Length)
-                        Notification.Device = new byte[_tokenLength];
+                    if (_tokenLength != Device.Token.Length)
+                        throw new InvalidOperationException("Unexpected token length");
                 }
                 else if (_index < 8 + 2 + _tokenLength)
                 {
@@ -91,9 +91,9 @@ namespace QuackApns.Parser
                     var copy = Math.Min(remaining, count - i);
 
                     if (copy > 1)
-                        Array.Copy(buffer, offset + i, Notification.Device, deviceIndex, copy);
+                        Array.Copy(buffer, offset + i, Device.Token, deviceIndex, copy);
                     else
-                        Notification.Device[deviceIndex] = buffer[offset + i];
+                        Device.Token[deviceIndex] = buffer[offset + i];
 
                     _index += copy;
                     i += copy;

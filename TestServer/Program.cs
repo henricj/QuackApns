@@ -24,6 +24,7 @@ using System.Threading.Tasks;
 using QuackApns;
 using QuackApns.Certificates;
 using QuackApns.Network;
+using QuackApns.RedisRepository;
 using QuackApns.Utility;
 
 namespace TestServer
@@ -34,21 +35,25 @@ namespace TestServer
 
         static async Task RunAsync(string hostname, int port, CancellationToken cancellationToken)
         {
-            var pushServer = new NetServer(ct => Task.FromResult<INetConnectionHandler>(new ApnsNotificationReader()));
+            using (var connection = await RedisConnection.ConnectAsync(cancellationToken).ConfigureAwait(false))
+            {
+                var pushServer = new NetServer(ct => Task.FromResult<INetConnectionHandler>(new ApnsNotificationReader()));
 
-            var feedbackServer = new NetServer(ct => Task.FromResult<INetConnectionHandler>(new DelegateNetConnectionHandler()));
+// ReSharper disable once AccessToDisposedClosure
+                var feedbackServer = new NetServer(ct => Task.FromResult<INetConnectionHandler>(new ApnsFeedbackWriter(new RedisDeregistrationSource(connection))));
 
-            var certificate = await IsolatedStorageCertificates.GetCertificateAsync(hostname, ServerP12File, false, cancellationToken).ConfigureAwait(false);
+                var certificate = await IsolatedStorageCertificates.GetCertificateAsync(hostname, ServerP12File, false, cancellationToken).ConfigureAwait(false);
 
-            await pushServer.StartAsync(hostname, port, certificate, cancellationToken).ConfigureAwait(false);
+                await pushServer.StartAsync(hostname, port, certificate, cancellationToken).ConfigureAwait(false);
 
-            await feedbackServer.StartAsync(hostname, port + 1, certificate, cancellationToken).ConfigureAwait(false);
+                await feedbackServer.StartAsync(hostname, port + 1, certificate, cancellationToken).ConfigureAwait(false);
 
-            await Task.WhenAll(pushServer.WaitAsync(), feedbackServer.WaitAsync()).ConfigureAwait(false);
+                await Task.WhenAll(pushServer.WaitAsync(), feedbackServer.WaitAsync()).ConfigureAwait(false);
 
-            await pushServer.CloseAsync().ConfigureAwait(false);
+                await pushServer.CloseAsync().ConfigureAwait(false);
 
-            await feedbackServer.CloseAsync().ConfigureAwait(false);
+                await feedbackServer.CloseAsync().ConfigureAwait(false);
+            }
         }
 
         static void Main(string[] args)
@@ -59,7 +64,7 @@ namespace TestServer
             }
             catch (Exception ex)
             {
-                Console.WriteLine(args[0] + " failed: " + ex.Message);
+                Console.WriteLine("TestServer failed: " + ex.Message);
             }
         }
     }

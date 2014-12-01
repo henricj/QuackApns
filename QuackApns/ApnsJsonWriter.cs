@@ -45,7 +45,7 @@ namespace QuackApns
 
         #endregion
 
-        public void Write(Stream stream, int identifier, int expirationEpoch, byte[] deviceId, IApnsPayloadWriter payload)
+        public void Write(Stream stream, uint identifier, int expirationEpoch, byte[] deviceId, IApnsPayloadWriter payload)
         {
             _jsonStream.SetLength(0);
 

@@ -19,160 +19,36 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
-using QuackApns.Network;
-using QuackApns.Utility;
 
 namespace QuackApns
 {
-    public class ApnsPushClient : INetConnectionHandler
+    public class ApnsPushClient
     {
-        const int BufferSize = 1024 * 1024;
-        readonly BufferBlock<ICollection<ApnsNotification>> _bufferBlock = new BufferBlock<ICollection<ApnsNotification>>();
-        readonly ApnsNotificationWriter _writer = new ApnsNotificationWriter();
-        MemoryStream _bufferStream = new MemoryStream(BufferSize);
-        int _identifier;
-        long _messageCount;
-        MemoryStream _writeStream = new MemoryStream(BufferSize);
-        Task _writeTask;
-        long _writeTotal;
+        readonly BufferBlock<IReadOnlyCollection<ApnsNotification>> _bufferBlock = new BufferBlock<IReadOnlyCollection<ApnsNotification>>(new DataflowBlockOptions { BoundedCapacity = 50 });
+        readonly string _host;
+        readonly Instance[] _instances;
+        readonly int _port;
 
-        public long MessageCount
+        public ApnsPushClient(string host, int port, int parallelConnections = 4)
         {
-            get { return Interlocked.Read(ref _messageCount); }
+            if (null == host)
+                throw new ArgumentNullException("host");
+
+            _host = host;
+            _port = port;
+            _instances = new Instance[parallelConnections];
         }
 
-        public long BytesWritten
-        {
-            get { return Interlocked.Read(ref _writeTotal); }
-        }
-
-        #region INetConnectionHandler Members
-
-        public async Task<long> ReadAsync(Stream stream, CancellationToken cancellationToken)
-        {
-            var total = 0L;
-
-            var buffer = new byte[1024];
-
-            try
-            {
-                for (; ; )
-                {
-                    var count = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
-
-                    if (count < 1)
-                        break;
-
-                    total += count;
-
-                    // TODO: Parse response...
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("Reader failed: " + ex.Message);
-            }
-
-            return total;
-        }
-
-        public async Task<long> WriteAsync(Stream stream, CancellationToken cancellationToken)
-        {
-            var writerBlock = new ActionBlock<ICollection<ApnsNotification>>(notifications => WriteNotificationsAsync(notifications, stream, cancellationToken),
-                new ExecutionDataflowBlockOptions { CancellationToken = cancellationToken, BoundedCapacity = 1 });
-
-            using (_bufferBlock.LinkTo(writerBlock, new DataflowLinkOptions { PropagateCompletion = true }))
-            {
-                await writerBlock.Completion.ConfigureAwait(false);
-            }
-
-            await FlushBufferAsync(stream, cancellationToken).ConfigureAwait(false);
-
-            if (null != _writeTask)
-                await _writeTask.ConfigureAwait(false);
-
-            return _writeTotal;
-        }
-
-        public Task CloseAsync(CancellationToken cancellationToken)
-        {
-            return TplHelpers.CompletedTask;
-        }
-
-        #endregion
-
-        async Task WriteNotificationsAsync(ICollection<ApnsNotification> notifications, Stream stream, CancellationToken cancellationToken)
-        {
-            if (null == notifications || 0 == notifications.Count)
-            {
-                // The nulls are requests to flush.
-                await FlushBufferAsync(stream, cancellationToken).ConfigureAwait(false);
-
-                var flushSentinel = notifications as FlushSentinel;
-
-                if (null == flushSentinel)
-                    return;
-
-                if (flushSentinel.IsBlocking)
-                {
-                    if (null != _writeTask)
-                        await _writeTask.ConfigureAwait(false);
-
-                    await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
-                }
-
-                flushSentinel.TrySetResult(true);
-
-                return;
-            }
-
-            foreach (var notification in notifications)
-            {
-                notification.Identifier = ++_identifier;
-
-                Interlocked.Increment(ref _messageCount);
-
-                _writer.Write(_bufferStream, notification);
-
-                if (_bufferStream.Length > BufferSize - 3072)
-                    await FlushBufferAsync(stream, cancellationToken).ConfigureAwait(false);
-            }
-        }
-
-        async Task FlushBufferAsync(Stream stream, CancellationToken cancellationToken)
-        {
-            //Debug.WriteLine("Writing {0:F2}k", bufferStream.Length / 1024.0);
-
-            if (null != _writeTask)
-                await _writeTask.ConfigureAwait(false);
-
-            var length = (int)_bufferStream.Length;
-
-            _writeTask = stream.WriteAsync(_bufferStream.GetBuffer(), 0, length, cancellationToken);
-
-            var incrementTask = _writeTask.ContinueWith(t => Interlocked.Add(ref _writeTotal, length),
-                TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously);
-
-            var tmp = _bufferStream;
-            _bufferStream = _writeStream;
-            _writeStream = tmp;
-
-            _bufferStream.SetLength(0);
-        }
-
-        public bool Post(ICollection<ApnsNotification> notifications)
+        public bool Post(IReadOnlyCollection<ApnsNotification> notifications)
         {
             return _bufferBlock.Post(notifications);
         }
 
-        public Task<bool> SendAsync(ICollection<ApnsNotification> notifications, CancellationToken cancellationToken)
+        public Task<bool> SendAsync(IReadOnlyCollection<ApnsNotification> notifications, CancellationToken cancellationToken)
         {
             return _bufferBlock.SendAsync(notifications, cancellationToken);
         }
@@ -182,80 +58,41 @@ namespace QuackApns
             _bufferBlock.Post(null);
         }
 
-        public async Task<bool> FlushAsync(bool blocking, CancellationToken cancellationToken)
+        public void Shutdown()
         {
-            var flushSentinel = new FlushSentinel(blocking);
-
-            using (cancellationToken.Register(() => flushSentinel.TrySetCanceled()))
-            {
-                var posted = await _bufferBlock.SendAsync(flushSentinel, cancellationToken).ConfigureAwait(false);
-
-                if (posted)
-                    return await flushSentinel.Task.ConfigureAwait(false);
-            }
-
-            return false;
+            _bufferBlock.Complete();
         }
 
-        #region Nested type: FlushSentinel
+        #region Nested type: Instance
 
-        class FlushSentinel : TaskCompletionSource<bool>, ICollection<ApnsNotification>
+        class Instance
         {
-            public FlushSentinel(bool blocking)
+            readonly ApnsPushConnection _connection;
+            readonly int _count;
+            readonly int _id;
+            Task _task;
+
+            public Instance(int id, int count)
             {
-                IsBlocking = blocking;
+                if (id >= count || id < 0)
+                    throw new ArgumentOutOfRangeException("id", "invalid id: " + id);
+                if (count < 1)
+                    throw new ArgumentOutOfRangeException("count", "invalid count: " + count);
+
+                _id = id;
+                _count = count;
+                _connection = new ApnsPushConnection();
             }
 
-            public bool IsBlocking { get; private set; }
-
-            #region ICollection<ApnsNotification> Members
-
-            public int Count
+            public ApnsPushConnection Connection
             {
-                get { return 0; }
+                get { return _connection; }
             }
 
-            void ICollection<ApnsNotification>.Add(ApnsNotification item)
+            bool Filter(ApnsDevice device)
             {
-                throw new NotImplementedException();
+                return _id == (device.TokenChecksum % _count);
             }
-
-            void ICollection<ApnsNotification>.Clear()
-            {
-                throw new NotImplementedException();
-            }
-
-            bool ICollection<ApnsNotification>.Contains(ApnsNotification item)
-            {
-                throw new NotImplementedException();
-            }
-
-            void ICollection<ApnsNotification>.CopyTo(ApnsNotification[] array, int arrayIndex)
-            {
-                throw new NotImplementedException();
-            }
-
-            bool ICollection<ApnsNotification>.IsReadOnly
-            {
-                get { throw new NotImplementedException(); }
-            }
-
-            bool ICollection<ApnsNotification>.Remove(ApnsNotification item)
-            {
-                throw new NotImplementedException();
-            }
-
-            IEnumerator<ApnsNotification> IEnumerable<ApnsNotification>.GetEnumerator()
-            {
-                throw new NotImplementedException();
-            }
-
-            IEnumerator IEnumerable.GetEnumerator()
-            {
-                throw new NotImplementedException();
-            }
-
-            #endregion
         }
 
         #endregion

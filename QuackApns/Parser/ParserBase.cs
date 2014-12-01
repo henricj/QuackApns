@@ -19,12 +19,14 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Linq;
 
 namespace QuackApns.Parser
 {
     abstract class ParserBase : IParser
     {
         protected ApnsNotification Notification { get; private set; }
+        protected ApnsDevice Device { get; private set; }
 
         protected Action<ApnsResponse> ReportError { get; private set; }
 
@@ -42,6 +44,17 @@ namespace QuackApns.Parser
             Notification = notification;
             ReportError = reportError;
             IsDone = false;
+
+            if (null == Notification.Devices)
+            {
+                Device = new ApnsDevice(new byte[ApnsConstants.DeviceTokenLength]);
+
+                var devices = new[] { Device };
+
+                Notification.Devices = devices;
+            }
+
+            Device = Notification.Devices.FirstOrDefault();
         }
 
         public abstract int Parse(byte[] buffer, int offset, int count);

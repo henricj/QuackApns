@@ -27,7 +27,7 @@ namespace QuackApns.Data
 {
     public class ApnsNotificationGenerator
     {
-        readonly XorShift1024Star _rng;
+        readonly IRandomGenerator<ulong> _rng;
 
         public ApnsNotificationGenerator()
         {
@@ -39,64 +39,63 @@ namespace QuackApns.Data
             _rng = new XorShift1024Star(key);
         }
 
-        public ICollection<ApnsNotification> GetApnsNotifications(int count, TimeSpan relativeExpiration, byte priority, IApnsPayloadWriter payload)
+        public ApnsNotification GetApnsNotification(int count, TimeSpan relativeExpiration, byte priority, IApnsPayloadWriter payload)
         {
+            var now = DateTimeOffset.UtcNow;
+
+            var expiration = now + relativeExpiration;
+
+            var notifications = new ApnsDevice[count];
+
+            for (var i = 0; i < count; ++i)
+            {
+                var apnsNotification = new ApnsDevice(new byte[ApnsConstants.DeviceTokenLength]);
+
+                _rng.GetBytes(apnsNotification.Token);
+
+                notifications[i] = apnsNotification;
+            }
+
             var binaryMessage = payload.ToBinary();
 
-            var now = DateTimeOffset.UtcNow;
-
-            var expiration = now + relativeExpiration;
-            var expirationEpoch = expiration.ToInt32UnixEpoch();
-
-            var notifications = new ApnsNotification[count];
-
-            for (var i = 0; i < count; ++i)
+            var batch = new ApnsNotification
             {
-                var apnsNotification = new ApnsNotification
-                {
-                    Device = new byte[ApnsConstants.DeviceTokenLength],
-                    ExpirationEpoch = expirationEpoch,
-                    Payload = new ArraySegment<byte>(binaryMessage),
-                    Priority = priority
-                };
+                ExpirationEpoch = expiration.ToInt32UnixEpoch(),
+                Payload = new ArraySegment<byte>(binaryMessage),
+                Priority = priority,
+                Devices = notifications
+            };
 
-                _rng.GetBytes(apnsNotification.Device);
-
-                notifications[i] = apnsNotification;
-            }
-
-            return notifications;
+            return batch;
         }
 
-        public ICollection<ApnsNotification> GetApnsNotifications(int count, TimeSpan relativeExpiration, byte priority)
+        public IEnumerable<ApnsNotification> GetApnsNotification(int count, TimeSpan relativeExpiration, byte priority)
         {
             var now = DateTimeOffset.UtcNow;
 
             var expiration = now + relativeExpiration;
-            var expirationEpoch = expiration.ToInt32UnixEpoch();
 
-            var notifications = new ApnsNotification[count];
+            var notifications = new ApnsDevice[1];
 
-            for (var i = 0; i < count; ++i)
+            var payload = new ApnsPayload { Alert = "Testing " + _rng.NextDouble(), Badge = 1, Sound = "default" };
+
+            var binaryMessage = payload.ToBinary();
+
+            var apnsNotification = new ApnsDevice(new byte[ApnsConstants.DeviceTokenLength]);
+
+            notifications[0] = apnsNotification;
+
+            _rng.GetBytes(apnsNotification.Token);
+
+            var batch = new ApnsNotification
             {
-                var payload = new ApnsPayload { Alert = "Testing " + _rng.NextDouble(), Badge = 1, Sound = "default" };
+                ExpirationEpoch = expiration.ToInt32UnixEpoch(),
+                Payload = new ArraySegment<byte>(binaryMessage),
+                Priority = priority,
+                Devices = notifications
+            };
 
-                var binaryMessage = payload.ToBinary();
-
-                var apnsNotification = new ApnsNotification
-                {
-                    Device = new byte[ApnsConstants.DeviceTokenLength],
-                    ExpirationEpoch = expirationEpoch,
-                    Payload = new ArraySegment<byte>(binaryMessage),
-                    Priority = priority
-                };
-
-                _rng.GetBytes(apnsNotification.Device);
-
-                notifications[i] = apnsNotification;
-            }
-
-            return notifications;
+            yield return batch;
         }
     }
 }

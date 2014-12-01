@@ -23,10 +23,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using QuackApns;
 using QuackApns.Data;
 using QuackApns.Network;
 using QuackApns.Utility;
+using DataflowBlock = System.Threading.Tasks.Dataflow.DataflowBlock;
 
 namespace TestClient
 {
@@ -76,7 +78,9 @@ namespace TestClient
 
         static Task RunWriterAsync(string host, int port, CancellationToken cancellationToken)
         {
-            var pushClient = new ApnsPushClient();
+            var pushClient = new ApnsPushConnection();
+
+            pushClient.LinkTo(DataflowBlock.NullTarget<ApnsNotification>(), new DataflowLinkOptions());
 
             var sw = Stopwatch.StartNew();
 
@@ -92,7 +96,7 @@ namespace TestClient
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("PushCLient close failed: " + ex.Message);
+                    Debug.WriteLine("PushClient close failed: " + ex.Message);
                 }
             }, TaskContinuationOptions.ExecuteSynchronously);
 
@@ -102,7 +106,7 @@ namespace TestClient
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    var notifications = CreateNotifications(1000 * 1000);
+                    var notifications = CreateNotification(1000 * 1000);
 
                     pushClient.Post(notifications);
                 }
@@ -112,13 +116,13 @@ namespace TestClient
                     {
                         sw.Stop();
 
-                        var messages = pushClient.MessageCount;
+                        var messages = pushClient.NotificationCount;
                         var written = pushClient.BytesWritten;
                         var elapsed = sw.Elapsed;
 
                         if (elapsed > TimeSpan.Zero && messages > 0)
                         {
-                            Console.WriteLine("Wrote {0:N3} kMsg totaling {1:F2}MB in {2} at {3:F2}MB/s", messages / 1000.0, written / (1024.0 * 1024.0), elapsed, written / (elapsed.TotalSeconds * 1024.0 * 1024.0));
+                            Console.WriteLine("Wrote {0:N0} Msg totaling {1:F2}MB in {2} at {3:F2}MB/s", messages, written / (1024.0 * 1024.0), elapsed, written / (elapsed.TotalSeconds * 1024.0 * 1024.0));
                             Console.WriteLine("Wrote {0:F2} kMsg/s averaging {1:F2} bytes/Msg", messages / elapsed.TotalMilliseconds, written / (double)messages);
                         }
 
@@ -130,7 +134,7 @@ namespace TestClient
             return writerTask;
         }
 
-        static ICollection<ApnsNotification> CreateNotifications(int count)
+        static ApnsNotification CreateNotification(int count)
         {
             var generator = new ApnsNotificationGenerator();
 
@@ -138,14 +142,14 @@ namespace TestClient
 
             var sw = Stopwatch.StartNew();
 
-            var notifications = generator.GetApnsNotifications(count, TimeSpan.FromDays(1), 10, payload);
+            var notifications = generator.GetApnsNotification(count, TimeSpan.FromDays(1), 10, payload);
             //var notifications = generator.GetApnsNotifications(count, TimeSpan.FromDays(1), 10);
 
             sw.Stop();
 
             var elapsed = sw.Elapsed;
 
-            Console.WriteLine("Created {0:N3} kMsg in {1} ({2:F2}kMsg/s)", count / 1000.0, elapsed, count / elapsed.TotalMilliseconds);
+            Console.WriteLine("Created {0:N0} Msg in {1} ({2:F2}kMsg/s)", count, elapsed, count / elapsed.TotalMilliseconds);
 
             return notifications;
         }

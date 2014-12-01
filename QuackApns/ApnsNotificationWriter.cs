@@ -25,14 +25,14 @@ namespace QuackApns
 {
     public interface IApnsNotificationWriter
     {
-        void Write(Stream stream, int identifier, int expirationEpoch, byte priority, byte[] deviceId, byte[] payload, int payloadOffset, int payloadCount);
+        void Write(Stream stream, uint identifier, int expirationEpoch, byte priority, byte[] deviceId, byte[] payload, int payloadOffset, int payloadCount);
     }
 
     public sealed class ApnsNotificationWriter : IApnsNotificationWriter
     {
         // https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/Chapters/CommunicatingWIthAPS.html
 
-        public void Write(Stream stream, int identifier, int expirationEpoch, byte priority, byte[] deviceId, byte[] payload, int payloadOffset, int payloadCount)
+        public void Write(Stream stream, uint identifier, int expirationEpoch, byte priority, byte[] deviceId, byte[] payload, int payloadOffset, int payloadCount)
         {
             // iOS 8 supports 2k?
             if (payloadCount > 2048) //if (message.Length > 256)
@@ -64,11 +64,11 @@ namespace QuackApns
 
     public static class ApnsNotificationWriterExtensions
     {
-        public static void Write(this IApnsNotificationWriter writer, Stream stream, ApnsNotification notification)
+        public static void Write(this IApnsNotificationWriter writer, Stream stream, ApnsNotification notification, ApnsDevice device)
         {
             var payload = notification.Payload;
 
-            writer.Write(stream, notification.Identifier, notification.ExpirationEpoch, notification.Priority, notification.Device, payload.Array, payload.Offset, payload.Count);
+            writer.Write(stream, device.Identifier, notification.ExpirationEpoch, notification.Priority, device.Token, payload.Array, payload.Offset, payload.Count);
         }
     }
 }

@@ -85,23 +85,23 @@ namespace QuackApns.SqlServerRepository
 
                         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-                        using (var cmd = connection.CreateCommand())
-                        {
-                            cmd.CommandText = "SELECT @@VERSION, @@SERVERNAME, @@SERVICENAME;";
+                        //using (var cmd = connection.CreateCommand())
+                        //{
+                        //    cmd.CommandText = "SELECT @@VERSION, @@SERVERNAME, @@SERVICENAME;";
 
-                            using (var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleResult | CommandBehavior.SingleRow, cancellationToken).ConfigureAwait(false))
-                            {
-                                if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                                    throw new InvalidOperationException();
+                        //    using (var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleResult | CommandBehavior.SingleRow, cancellationToken).ConfigureAwait(false))
+                        //    {
+                        //        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                        //            throw new InvalidOperationException();
 
-                                var version = reader.GetString(0);
-                                var server = reader.GetString(1);
-                                var service = reader.GetString(2);
+                        //        var version = reader.GetString(0);
+                        //        var server = reader.GetString(1);
+                        //        var service = reader.GetString(2);
 
-                                Console.WriteLine("Connected to {0} ({1})", server, service);
-                                Console.WriteLine(version);
-                            }
-                        }
+                        //        Console.WriteLine("Connected to {0} ({1})", server, service);
+                        //        Console.WriteLine(version);
+                        //    }
+                        //}
 
                         var sqlServerConnection = new SqlServerConnection(connection, generator);
 
@@ -247,7 +247,6 @@ namespace QuackApns.SqlServerRepository
 
                 var val = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
 
-
                 return (long)val;
             }
         }
@@ -262,7 +261,7 @@ namespace QuackApns.SqlServerRepository
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.CommandText = "Quack.GetNotifications";
                 cmd.Parameters.AddWithValue("@BatchTimeout", DateTime.UtcNow + TimeSpan.FromMinutes(-20));
-                cmd.Parameters.AddWithValue("@BatchSize", 25000);
+                //cmd.Parameters.AddWithValue("@BatchSize", 5000);
 
                 using (var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
                 {
